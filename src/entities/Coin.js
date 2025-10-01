@@ -40,6 +40,9 @@ class Coin {
     update() {
         if (this.bumperCooldown > 0) {
             this.bumperCooldown -= 1;
+            if (this.bumperCooldown === 0) {
+                this.lastBumperHit = null;
+            }
         }
     }
 
@@ -67,7 +70,7 @@ class Coin {
             currentVelY + Math.sin(angle) * force
         );
         
-        this.bumperCooldown = 30;
+        this.bumperCooldown = 3;
         this.lastBumperHit = bumper;
     }
 

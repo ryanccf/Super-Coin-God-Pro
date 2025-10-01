@@ -67,31 +67,31 @@ class Shop extends Phaser.Scene {
                 cost: GameUtils.calculateUpgradeCost(10, upgradeLevel, 1.6),
                 canAfford: totalCoins >= GameUtils.calculateUpgradeCost(10, upgradeLevel, 1.6),
                 canPurchase: true,
-                color: COLORS.MINT_GREEN,
+                color: 0x32CD32,
                 action: () => this.buyCoinUpgrade()
-            },
-            {
-                name: 'Game Time +2s',
-                cost: GameUtils.calculateUpgradeCost(25, timerLevel, 1.8),
-                canAfford: totalCoins >= GameUtils.calculateUpgradeCost(25, timerLevel, 1.8),
-                canPurchase: true,
-                color: 0x87CEEB,
-                action: () => this.buyTimerUpgrade()
             },
             {
                 name: 'Buy Basket',
                 cost: GameUtils.calculateUpgradeCost(50, basketLevel, 1.7),
                 canAfford: totalCoins >= GameUtils.calculateUpgradeCost(50, basketLevel, 1.7),
                 canPurchase: PositionManager.findBasketPosition(this.registry.get('baskets')) !== null,
-                color: COLORS.BROWN,
+                color: 0x8B4513,
                 action: () => this.buyBasket()
+            },
+            {
+                name: 'Game Time +2s',
+                cost: GameUtils.calculateUpgradeCost(25, timerLevel, 1.8),
+                canAfford: totalCoins >= GameUtils.calculateUpgradeCost(25, timerLevel, 1.8),
+                canPurchase: true,
+                color: 0x4169E1,
+                action: () => this.buyTimerUpgrade()
             },
             {
                 name: 'Buy Bumper',
                 cost: GameUtils.calculateUpgradeCost(25, bumperLevel, 1.7),
                 canAfford: totalCoins >= GameUtils.calculateUpgradeCost(25, bumperLevel, 1.7),
                 canPurchase: PositionManager.findBumperPosition(this.registry.get('bumpers'), this.registry.get('baskets')) !== null,
-                color: COLORS.PURPLE,
+                color: 0x9370DB,
                 action: () => this.buyBumper()
             }
         ];
