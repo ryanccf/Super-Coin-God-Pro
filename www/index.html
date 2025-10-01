@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Skull God Pro Championship Edition</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.85.0/phaser.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(45deg, #CCCCCC, #AAAAAA);
+            font-family: Arial, sans-serif;
+        }
+        #phaser-container {
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+    <div id="phaser-container"></div>
+
+    <!-- Config -->
+    <script src="src/config/Colors.js"></script>
+    <script src="src/config/GameConfig.js"></script>
+    
+    <!-- Utils -->
+    <script src="src/utils/GameUtils.js"></script>
+    <script src="src/utils/AssetCreator.js"></script>
+    <script src="src/utils/PositionManager.js"></script>
+    
+    <!-- Entities -->
+    <script src="src/entities/Skull.js"></script>
+    
+    <!-- Scenes -->
+    <script src="src/scenes/Boot.js"></script>
+    <script src="src/scenes/Preloader.js"></script>
+    <script src="src/scenes/MainMenu.js"></script>
+    <script src="src/scenes/Settings.js"></script>
+    <script src="src/scenes/Shop.js"></script>
+    <script src="src/scenes/ClickerGame.js"></script>
+    <script src="src/scenes/GameOver.js"></script>
+    
+    <!-- Game Initialization -->
+    <script>
+        const config = {
+            type: Phaser.AUTO,
+            width: GAME_CONFIG.WORLD_WIDTH,
+            height: GAME_CONFIG.WORLD_HEIGHT,
+            parent: "phaser-container",
+            backgroundColor: "#CCCCCC",
+            scale: {
+                mode: Phaser.Scale.FIT,
+                autoCenter: Phaser.Scale.CENTER_BOTH
+            },
+            physics: {
+                default: "arcade",
+                arcade: {
+                    gravity: { y: GAME_CONFIG.GRAVITY }
+                }
+            },
+            scene: [
+                Boot,
+                Preloader,
+                MainMenu,
+                Settings,
+                Shop,
+                ClickerGame,
+                GameOver
+            ]
+        };
+
+        new Phaser.Game(config);
+    </script>
+</body>
+</html>

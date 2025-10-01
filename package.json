@@ -1,0 +1,28 @@
+{
+  "name": "super-coin-god-pro",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "sync": "cp index.html www/ && cp -r src www/ && npx cap sync",
+    "open:android": "npx cap open android",
+    "open:ios": "npx cap open ios"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ryanccf/Super-Coin-God-Pro.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ryanccf/Super-Coin-God-Pro/issues"
+  },
+  "homepage": "https://github.com/ryanccf/Super-Coin-God-Pro#readme",
+  "dependencies": {
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/cli": "^7.4.3",
+    "@capacitor/core": "^7.4.3",
+    "@capacitor/ios": "^7.4.3"
+  }
+}
