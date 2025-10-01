@@ -15,19 +15,19 @@ class Shop extends Phaser.Scene {
     }
 
     createHeader() {
-        const totalCoins = this.registry.get('totalCoins');
-        const maxCoins = this.registry.get('maxCoins');
+        const totalSkulls = this.registry.get('totalSkulls');
+        const maxSkulls = this.registry.get('maxSkulls');
         const gameTime = this.registry.get('gameTime');
-        
-        this.add.text(512, 60, 'COIN SHOP', {
+
+        this.add.text(512, 60, 'SKULL SHOP', {
             fontFamily: 'Arial Black',
             fontSize: 48,
-            color: '#FFD700',
+            color: '#FFEB3B',
             stroke: '#000000',
             strokeThickness: 6
         }).setOrigin(0.5);
 
-        this.add.text(512, 120, `Your Coins: ${totalCoins}`, {
+        this.add.text(512, 120, `Your Skulls: ${totalSkulls}`, {
             fontFamily: 'Arial Black',
             fontSize: 28,
             color: '#ffffff',
@@ -35,7 +35,7 @@ class Shop extends Phaser.Scene {
             strokeThickness: 4
         }).setOrigin(0.5);
 
-        this.add.text(512, 160, `Max Coins: ${maxCoins} | Game Time: ${gameTime}s`, {
+        this.add.text(512, 160, `Max Skulls: ${maxSkulls} | Game Time: ${gameTime}s`, {
             fontFamily: 'Arial Black',
             fontSize: 28,
             color: '#ffffff',
@@ -62,7 +62,7 @@ class Shop extends Phaser.Scene {
     }
 
     getUpgradeData() {
-        const totalCoins = this.registry.get('totalCoins');
+        const totalSkulls = this.registry.get('totalSkulls');
         const upgradeLevel = this.registry.get('upgradeLevel');
         const timerLevel = this.registry.get('timerLevel');
         const basketLevel = this.registry.get('basketLevel');
@@ -75,43 +75,43 @@ class Shop extends Phaser.Scene {
 
         return [
             {
-                name: 'Max Coins +1',
+                name: 'Max Skulls +1',
                 cost: GameUtils.calculateUpgradeCost(10, upgradeLevel, 1.6),
-                canAfford: totalCoins >= GameUtils.calculateUpgradeCost(10, upgradeLevel, 1.6),
+                canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(10, upgradeLevel, 1.6),
                 canPurchase: true,
-                color: 0x32CD32,
-                action: () => this.buyCoinUpgrade()
+                color: 0x2F7F4F,  // Dark green
+                action: () => this.buySkullUpgrade()
             },
             {
                 name: 'Buy Basket',
                 cost: GameUtils.calculateUpgradeCost(50, basketLevel, 1.7),
-                canAfford: totalCoins >= GameUtils.calculateUpgradeCost(50, basketLevel, 1.7),
+                canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(50, basketLevel, 1.7),
                 canPurchase: PositionManager.findBasketPosition(baskets, bumpers, flippers) !== null,
-                color: 0x8B4513,
+                color: 0xB34E00,  // Dark orange
                 action: () => this.buyBasket()
             },
             {
                 name: 'Game Time +2s',
                 cost: GameUtils.calculateUpgradeCost(25, timerLevel, 1.8),
-                canAfford: totalCoins >= GameUtils.calculateUpgradeCost(25, timerLevel, 1.8),
+                canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(25, timerLevel, 1.8),
                 canPurchase: true,
-                color: 0x4169E1,
+                color: 0x0AA1DD,  // Cyan blue
                 action: () => this.buyTimerUpgrade()
             },
             {
                 name: 'Buy Bumper',
                 cost: GameUtils.calculateUpgradeCost(25, bumperLevel, 1.7),
-                canAfford: totalCoins >= GameUtils.calculateUpgradeCost(25, bumperLevel, 1.7),
+                canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(25, bumperLevel, 1.7),
                 canPurchase: PositionManager.findBumperPosition(bumpers, baskets, flippers) !== null,
-                color: 0x9370DB,
+                color: 0x6B2C3E,  // Deep burgundy
                 action: () => this.buyBumper()
             },
             {
                 name: 'Buy Flipper',
                 cost: GameUtils.calculateUpgradeCost(20, flipperLevel, 1.5),
-                canAfford: totalCoins >= GameUtils.calculateUpgradeCost(20, flipperLevel, 1.5),
+                canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(20, flipperLevel, 1.5),
                 canPurchase: PositionManager.findFlipperPosition(flippers, baskets, bumpers) !== null,
-                color: 0xFF6347,
+                color: 0xE87461,  // Coral
                 action: () => this.buyFlipper()
             }
         ];
@@ -119,7 +119,7 @@ class Shop extends Phaser.Scene {
 
     createUpgradeButton(x, y, upgrade) {
         const available = upgrade.canAfford && upgrade.canPurchase;
-        const color = available ? upgrade.color : 0x8B0000;
+        const color = available ? upgrade.color : 0x4A4A4A;  // Gray for unavailable
         
         const button = this.add.graphics();
         button.fillStyle(color);
@@ -151,7 +151,7 @@ class Shop extends Phaser.Scene {
 
     createNavButton(x, y, text, callback) {
         const button = this.add.graphics();
-        button.fillStyle(text === 'BACK' ? COLORS.ROYAL_BLUE : 0xFF6347);
+        button.fillStyle(text === 'BACK' ? 0x0B5563 : 0x8B1A1A);  // Dark teal or dark red
         button.fillRoundedRect(x-60, y-20, 120, 40, 6);
         button.setInteractive(new Phaser.Geom.Rectangle(x-60, y-20, 120, 40), Phaser.Geom.Rectangle.Contains);
 
@@ -164,20 +164,20 @@ class Shop extends Phaser.Scene {
         button.on('pointerdown', callback);
     }
 
-        buyCoinUpgrade() {
+        buySkullUpgrade() {
         const cost = GameUtils.calculateUpgradeCost(10, this.registry.get('upgradeLevel'), 1.6);
-        if (this.registry.get('totalCoins') >= cost) {
-            this.registry.set('totalCoins', this.registry.get('totalCoins') - cost);
+        if (this.registry.get('totalSkulls') >= cost) {
+            this.registry.set('totalSkulls', this.registry.get('totalSkulls') - cost);
             this.registry.set('upgradeLevel', this.registry.get('upgradeLevel') + 1);
-            this.registry.set('maxCoins', this.registry.get('maxCoins') + 1);
+            this.registry.set('maxSkulls', this.registry.get('maxSkulls') + 1);
             this.scene.restart();
         }
     }
 
     buyTimerUpgrade() {
         const cost = GameUtils.calculateUpgradeCost(25, this.registry.get('timerLevel'), 1.8);
-        if (this.registry.get('totalCoins') >= cost) {
-            this.registry.set('totalCoins', this.registry.get('totalCoins') - cost);
+        if (this.registry.get('totalSkulls') >= cost) {
+            this.registry.set('totalSkulls', this.registry.get('totalSkulls') - cost);
             this.registry.set('timerLevel', this.registry.get('timerLevel') + 1);
             this.registry.set('gameTime', this.registry.get('gameTime') + 2);
             this.scene.restart();
@@ -191,8 +191,8 @@ class Shop extends Phaser.Scene {
         const flippers = this.registry.get('flippers');
         const newPosition = PositionManager.findBasketPosition(baskets, bumpers, flippers);
 
-        if (this.registry.get('totalCoins') >= cost && newPosition) {
-            this.registry.set('totalCoins', this.registry.get('totalCoins') - cost);
+        if (this.registry.get('totalSkulls') >= cost && newPosition) {
+            this.registry.set('totalSkulls', this.registry.get('totalSkulls') - cost);
             this.registry.set('basketLevel', this.registry.get('basketLevel') + 1);
 
             baskets.push(newPosition);
@@ -208,8 +208,8 @@ class Shop extends Phaser.Scene {
         const flippers = this.registry.get('flippers');
         const newPosition = PositionManager.findBumperPosition(bumpers, baskets, flippers);
 
-        if (this.registry.get('totalCoins') >= cost && newPosition) {
-            this.registry.set('totalCoins', this.registry.get('totalCoins') - cost);
+        if (this.registry.get('totalSkulls') >= cost && newPosition) {
+            this.registry.set('totalSkulls', this.registry.get('totalSkulls') - cost);
             this.registry.set('bumperLevel', this.registry.get('bumperLevel') + 1);
 
             bumpers.push(newPosition);
@@ -225,8 +225,8 @@ class Shop extends Phaser.Scene {
         const flippers = this.registry.get('flippers');
         const newPosition = PositionManager.findFlipperPosition(flippers, baskets, bumpers);
 
-        if (this.registry.get('totalCoins') >= cost && newPosition) {
-            this.registry.set('totalCoins', this.registry.get('totalCoins') - cost);
+        if (this.registry.get('totalSkulls') >= cost && newPosition) {
+            this.registry.set('totalSkulls', this.registry.get('totalSkulls') - cost);
             this.registry.set('flipperLevel', this.registry.get('flipperLevel') + 1);
 
             const facingLeft = flippers.length % 2 === 0;

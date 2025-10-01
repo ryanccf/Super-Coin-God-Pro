@@ -4,15 +4,15 @@ class GameOver extends Phaser.Scene {
     }
 
     create() {
-        const totalCoins = this.registry.get('totalCoins');
+        const totalSkulls = this.registry.get('totalSkulls');
         const bestRound = this.registry.get('highscore');
-        
+
         this.add.image(512, 384, 'background');
 
         const message = [
             "Time's Up!",
             "",
-            `Total Coins: ${totalCoins}`,
+            `Total Skulls: ${totalSkulls}`,
             `Best Round: ${bestRound}`,
             "",
             "Click to Continue"

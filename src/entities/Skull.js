@@ -1,4 +1,4 @@
-class Coin {
+class Skull {
     constructor(scene, x, y, value = 1, isBig = false) {
         this.scene = scene;
         this.value = value;
@@ -8,8 +8,8 @@ class Coin {
         this.lastBumperHit = null;
         this.flipperCooldown = 0;
         this.lastFlipperHit = null;
-        
-        this.sprite = scene.physics.add.sprite(x, y, isBig ? 'bigcoin' : 'coin_01');
+
+        this.sprite = scene.physics.add.sprite(x, y, isBig ? 'bigskull' : 'skull_01');
         if (!isBig) this.sprite.play('rotate');
         
         this.sprite.setVelocityX(Phaser.Math.Between(-400, 400));
@@ -22,7 +22,8 @@ class Coin {
             fontSize: isBig ? 20 : 16,
             color: '#000000',
             stroke: '#FFFFFF',
-            strokeThickness: isBig ? 3 : 2
+            strokeThickness: isBig ? 3 : 2,
+            fixedWidth: 0
         }).setOrigin(0.5).setDepth(10);
         
         if (isBig) {
@@ -56,9 +57,10 @@ class Coin {
 
     updateValueText() {
         if (this.valueText && this.sprite) {
-            this.valueText.x = this.sprite.x;
-            this.valueText.y = this.sprite.y;
-            this.valueText.setText(this.value.toString());
+            // Keep text centered on sprite body center, smoothed to reduce jitter
+            const centerX = Math.round(this.sprite.body.center.x);
+            const centerY = Math.round(this.sprite.body.center.y);
+            this.valueText.setPosition(centerX, centerY);
         }
     }
 
@@ -71,15 +73,19 @@ class Coin {
     }
 
     hitBumper(bumper) {
+        // Calculate angle from bumper center to skull (pushing away radially)
         const angle = Phaser.Math.Angle.Between(bumper.x, bumper.y, this.sprite.x, this.sprite.y);
-        const force = 200;
 
-        const currentVelX = this.sprite.body.velocity.x;
-        const currentVelY = this.sprite.body.velocity.y;
+        // Strong outward push like real pinball bumpers
+        const pushForce = 400;
+
+        // Set velocity directly (with some preservation of momentum)
+        const currentVelX = this.sprite.body.velocity.x * 0.3;
+        const currentVelY = this.sprite.body.velocity.y * 0.3;
 
         this.sprite.setVelocity(
-            currentVelX + Math.cos(angle) * force,
-            currentVelY + Math.sin(angle) * force
+            currentVelX + Math.cos(angle) * pushForce,
+            currentVelY + Math.sin(angle) * pushForce
         );
 
         this.bumperCooldown = 5;
@@ -101,7 +107,7 @@ class Coin {
         this.sprite.setTint(COLORS.LIGHT_YELLOW);
         if (this.valueText) {
             this.valueText.setText(this.value.toString());
-            this.valueText.setColor('#FF0000');
+            this.valueText.setColor('#000000');
         }
     }
 
@@ -124,7 +130,6 @@ class Coin {
         this.sprite.setVelocity(0, 0);
         this.sprite.setAngularVelocity(0);
 
-        this.scene.cameras.main.shake(50, 0.005);
         GameUtils.createParticleEffect(this.scene, this.sprite.x, this.sprite.y, COLORS.GOLD, 8);
 
         if (!this.isBig) {

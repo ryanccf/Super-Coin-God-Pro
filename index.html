@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Super Coin God Pro Championship Edition</title>
+    <title>Super Skull God Pro Championship Edition</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.85.0/phaser.min.js"></script>
     <style>
         body {
@@ -13,7 +13,7 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background: linear-gradient(45deg, #1a1a2e, #16213e);
+            background: linear-gradient(45deg, #CCCCCC, #AAAAAA);
             font-family: Arial, sans-serif;
         }
         #phaser-container {
@@ -35,7 +35,7 @@
     <script src="src/utils/PositionManager.js"></script>
     
     <!-- Entities -->
-    <script src="src/entities/Coin.js"></script>
+    <script src="src/entities/Skull.js"></script>
     
     <!-- Scenes -->
     <script src="src/scenes/Boot.js"></script>
@@ -53,7 +53,7 @@
             width: GAME_CONFIG.WORLD_WIDTH,
             height: GAME_CONFIG.WORLD_HEIGHT,
             parent: "phaser-container",
-            backgroundColor: "#028af8",
+            backgroundColor: "#CCCCCC",
             scale: {
                 mode: Phaser.Scale.FIT,
                 autoCenter: Phaser.Scale.CENTER_BOTH

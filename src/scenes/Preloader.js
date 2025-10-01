@@ -25,13 +25,13 @@ class Preloader extends Phaser.Scene {
     }
 
     preload() {
-        AssetCreator.createCoinFrames(this);
+        AssetCreator.createSkullFrames(this);
         AssetCreator.createVanishFrames(this);
         AssetCreator.createBackground(this);
         AssetCreator.createBasket(this);
         AssetCreator.createBumper(this);
         AssetCreator.createFlipper(this);
-        AssetCreator.createBigCoin(this);
+        AssetCreator.createBigSkull(this);
         AssetCreator.createFloor(this);
     }
 
@@ -43,7 +43,7 @@ class Preloader extends Phaser.Scene {
     createAnimations() {
         this.anims.create({
             key: "rotate",
-            frames: Array.from({length: 7}, (_, i) => ({ key: `coin_${(i+1).toString().padStart(2, '0')}` })),
+            frames: Array.from({length: 7}, (_, i) => ({ key: `skull_${(i+1).toString().padStart(2, '0')}` })),
             frameRate: 16,
             repeat: -1
         });

@@ -12,8 +12,8 @@ const GAME_CONFIG = {
 };
 
 const DEFAULT_SAVE_DATA = {
-    totalCoins: 200,
-    maxCoins: 10,
+    totalSkulls: 200,
+    maxSkulls: 10,
     upgradeLevel: 0,
     basketLevel: 0,
     timerLevel: 0,

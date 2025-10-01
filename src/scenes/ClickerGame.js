@@ -10,14 +10,14 @@ class ClickerGame extends Phaser.Scene {
 
     initializeGameState() {
         this.roundScore = 0;
-        this.totalCoins = this.registry.get('totalCoins');
-        this.maxCoins = this.registry.get('maxCoins');
+        this.totalSkulls = this.registry.get('totalSkulls');
+        this.maxSkulls = this.registry.get('maxSkulls');
         this.gameTime = this.registry.get('gameTime');
-        this.bigCoinSpawned = false;
+        this.bigSkullSpawned = false;
     }
 
     initializeArrays() {
-        this.coinObjects = [];
+        this.skullObjects = [];
         this.basketSprites = [];
         this.bumperSprites = [];
         this.flipperSprites = [];
@@ -29,7 +29,7 @@ class ClickerGame extends Phaser.Scene {
         this.createGameObjects();
         this.setupPhysics();
         this.setupInput();
-        this.spawnInitialCoins();
+        this.spawnInitialSkulls();
         this.startTimer();
     }
 
@@ -55,11 +55,11 @@ class ClickerGame extends Phaser.Scene {
         };
 
         this.roundScoreText = this.add.text(32, 32, `Round: ${this.roundScore}`, textStyle).setDepth(1);
-        this.totalCoinsText = this.add.text(32, 80, `Total: ${this.totalCoins}`, textStyle).setDepth(1);
-        this.maxCoinsText = this.add.text(32, 128, `Max: ${this.maxCoins}`, {
+        this.totalSkullsText = this.add.text(32, 80, `Total: ${this.totalSkulls}`, textStyle).setDepth(1);
+        this.maxSkullsText = this.add.text(32, 128, `Max: ${this.maxSkulls}`, {
             fontFamily: 'Arial Black',
             fontSize: 24,
-            color: '#FFD700',
+            color: '#FFEB3B',
             stroke: '#000000',
             strokeThickness: 8
         }).setDepth(1);
@@ -127,7 +127,7 @@ class ClickerGame extends Phaser.Scene {
                 yoyo: true,
                 ease: 'Back.easeOut'
             });
-            GameUtils.createParticleEffect(this, basket.x, basket.y, 0x8B4513, 4);
+            GameUtils.createParticleEffect(this, basket.x, basket.y, 0xB34E00, 4);
         });
     }
 
@@ -194,7 +194,7 @@ class ClickerGame extends Phaser.Scene {
                 yoyo: true,
                 ease: 'Back.easeOut'
             });
-            GameUtils.createParticleEffect(this, bumper.x, bumper.y, COLORS.PURPLE, 4);
+            GameUtils.createParticleEffect(this, bumper.x, bumper.y, 0x6B2C3E, 4);
         });
     }
 
@@ -291,33 +291,33 @@ class ClickerGame extends Phaser.Scene {
                     flipper.setScale(1);
                 }
             });
-            GameUtils.createParticleEffect(this, flipper.x, flipper.y, 0xFF6347, 4);
+            GameUtils.createParticleEffect(this, flipper.x, flipper.y, 0xE87461, 4);
         });
     }
 
     setupPhysics() {}
 
-    setupCollisionForCoin(coin) {
+    setupCollisionForSkull(skull) {
         if (this.basketSprites.length > 0) {
             this.basketSprites.forEach(basket => {
-                this.physics.add.overlap(coin.sprite, basket, (coinSprite, basket) => {
-                    this.handleBasketCollection(coinSprite, basket);
+                this.physics.add.overlap(skull.sprite, basket, (skullSprite, basket) => {
+                    this.handleBasketCollection(skullSprite, basket);
                 });
             });
         }
 
         if (this.bumperSprites.length > 0) {
             this.bumperSprites.forEach(bumper => {
-                this.physics.add.collider(coin.sprite, bumper, (coinSprite, bumper) => {
-                    this.handleBumperCollision(coinSprite, bumper);
+                this.physics.add.collider(skull.sprite, bumper, (skullSprite, bumper) => {
+                    this.handleBumperCollision(skullSprite, bumper);
                 });
             });
         }
 
         if (this.flipperSprites.length > 0) {
             this.flipperSprites.forEach(flipper => {
-                this.physics.add.collider(coin.sprite, flipper, (coinSprite, flipper) => {
-                    this.handleFlipperCollision(coinSprite, flipper);
+                this.physics.add.collider(skull.sprite, flipper, (skullSprite, flipper) => {
+                    this.handleFlipperCollision(skullSprite, flipper);
                 });
             });
         }
@@ -326,18 +326,18 @@ class ClickerGame extends Phaser.Scene {
     setupInput() {
         this.input.on('gameobjectdown', (pointer, gameObject) => {
             if (gameObject.texture) {
-                if (gameObject.texture.key.startsWith('coin_')) {
-                    this.handleCoinClick(gameObject);
-                } else if (gameObject.texture.key === 'bigcoin') {
-                    this.handleCoinClick(gameObject);
+                if (gameObject.texture.key.startsWith('skull_')) {
+                    this.handleSkullClick(gameObject);
+                } else if (gameObject.texture.key === 'bigskull') {
+                    this.handleSkullClick(gameObject);
                 }
             }
         });
     }
 
-    spawnInitialCoins() {
-        for (let i = 0; i < this.maxCoins; i++) {
-            this.spawnCoin();
+    spawnInitialSkulls() {
+        for (let i = 0; i < this.maxSkulls; i++) {
+            this.spawnSkull();
         }
     }
 
@@ -348,69 +348,69 @@ class ClickerGame extends Phaser.Scene {
         });
     }
 
-    spawnCoin(isBig = false) {
+    spawnSkull(isBig = false) {
         const x = Phaser.Math.Between(128, 896);
         const y = Phaser.Math.Between(0, -400);
         const value = isBig ? 10 : 1;
-        
-        const coin = new Coin(this, x, y, value, isBig);
-        this.coinObjects.push(coin);
-        
-        this.setupCollisionForCoin(coin);
+
+        const skull = new Skull(this, x, y, value, isBig);
+        this.skullObjects.push(skull);
+
+        this.setupCollisionForSkull(skull);
     }
 
-    handleCoinClick(sprite) {
-        const coinObj = this.coinObjects.find(c => c.sprite === sprite);
-        if (!coinObj || !coinObj.collect()) return;
-        
-        this.addScore(coinObj.value);
-        this.showBonusText(sprite.x, sprite.y, coinObj.value);
+    handleSkullClick(sprite) {
+        const skullObj = this.skullObjects.find(c => c.sprite === sprite);
+        if (!skullObj || !skullObj.collect()) return;
+
+        this.addScore(skullObj.value);
+        this.showBonusText(sprite.x, sprite.y, skullObj.value);
         this.updateScoreDisplay();
-        this.removeCoinFromArray(coinObj);
-        
-        if (this.coinObjects.length < this.maxCoins) {
-            this.spawnCoin();
+        this.removeSkullFromArray(skullObj);
+
+        if (this.skullObjects.length < this.maxSkulls) {
+            this.spawnSkull();
         }
     }
 
-    handleBasketCollection(coinSprite, basket) {
-        const coinObj = this.coinObjects.find(c => c.sprite === coinSprite);
-        if (!coinObj || !coinObj.collectInBasket(basket)) return;
+    handleBasketCollection(skullSprite, basket) {
+        const skullObj = this.skullObjects.find(c => c.sprite === skullSprite);
+        if (!skullObj || !skullObj.collectInBasket(basket)) return;
 
-        this.addScore(coinObj.value);
-        this.showBasketBonusText(basket.x, basket.y, coinObj.value);
+        this.addScore(skullObj.value);
+        this.showBasketBonusText(basket.x, basket.y, skullObj.value);
         this.updateScoreDisplay();
-        this.removeCoinFromArray(coinObj);
+        this.removeSkullFromArray(skullObj);
 
-        if (this.coinObjects.length < this.maxCoins) {
-            this.spawnCoin();
+        if (this.skullObjects.length < this.maxSkulls) {
+            this.spawnSkull();
         }
     }
 
-    handleBumperCollision(coinSprite, bumper) {
-        const coinObj = this.coinObjects.find(c => c.sprite === coinSprite);
-        if (!coinObj || !coinObj.canHitBumper(bumper)) return;
+    handleBumperCollision(skullSprite, bumper) {
+        const skullObj = this.skullObjects.find(c => c.sprite === skullSprite);
+        if (!skullObj || !skullObj.canHitBumper(bumper)) return;
 
-        coinObj.hitBumper(bumper);
-        coinObj.doubleValue();
+        skullObj.hitBumper(bumper);
+        skullObj.doubleValue();
         this.showBumperEffect(bumper);
     }
 
-    handleFlipperCollision(coinSprite, flipper) {
-        const coinObj = this.coinObjects.find(c => c.sprite === coinSprite);
-        if (!coinObj || !coinObj.canHitFlipper(flipper)) return;
+    handleFlipperCollision(skullSprite, flipper) {
+        const skullObj = this.skullObjects.find(c => c.sprite === skullSprite);
+        if (!skullObj || !skullObj.canHitFlipper(flipper)) return;
 
         const upwardForce = -500;
         const horizontalForce = flipper.facingLeft ? -200 : 200;
 
-        coinObj.hitFlipper(flipper, upwardForce, horizontalForce);
+        skullObj.hitFlipper(flipper, upwardForce, horizontalForce);
         this.showFlipperEffect(flipper);
     }
 
     clickBasket(basket) {
-        const bonusCoins = 5;
-        this.addScore(bonusCoins);
-        this.showBasketBonusText(basket.x, basket.y - 30, bonusCoins);
+        const bonusSkulls = 5;
+        this.addScore(bonusSkulls);
+        this.showBasketBonusText(basket.x, basket.y - 30, bonusSkulls);
         this.updateScoreDisplay();
         
         this.tweens.add({
@@ -424,16 +424,16 @@ class ClickerGame extends Phaser.Scene {
 
     addScore(points) {
         this.roundScore += points;
-        this.totalCoins += points;
-        this.registry.set('totalCoins', this.totalCoins);
+        this.totalSkulls += points;
+        this.registry.set('totalSkulls', this.totalSkulls);
     }
 
     updateScoreDisplay() {
         this.roundScoreText.setText(`Round: ${this.roundScore}`);
-        this.totalCoinsText.setText(`Total: ${this.totalCoins}`);
+        this.totalSkullsText.setText(`Total: ${this.totalSkulls}`);
         
         this.tweens.add({
-            targets: [this.roundScoreText, this.totalCoinsText],
+            targets: [this.roundScoreText, this.totalSkullsText],
             scaleX: 1.2,
             scaleY: 1.2,
             duration: 200,
@@ -443,8 +443,8 @@ class ClickerGame extends Phaser.Scene {
     }
 
     showBonusText(x, y, value) {
-        const color = value > 1 ? '#FFFF99' : '#FFD700';
-        const stroke = value > 1 ? '#DA70D6' : '#FF8C00';
+        const color = value > 1 ? '#FFEB3B' : '#0AA1DD';
+        const stroke = value > 1 ? '#8B1A1A' : '#000000';
         
         const bonusText = this.add.text(x, y - 30, `+${value}!`, {
             fontFamily: 'Arial Black',
@@ -469,8 +469,8 @@ class ClickerGame extends Phaser.Scene {
         const bonusText = this.add.text(x, y - 40, `+${value}!`, {
             fontFamily: 'Arial Black',
             fontSize: 20,
-            color: '#FFD700',
-            stroke: '#8B4513',
+            color: '#FFEB3B',
+            stroke: '#000000',
             strokeThickness: 2
         }).setOrigin(0.5);
 
@@ -493,13 +493,13 @@ class ClickerGame extends Phaser.Scene {
             ease: 'Back.easeOut'
         });
 
-        GameUtils.createParticleEffect(this, bumper.x, bumper.y, COLORS.PURPLE, 6);
+        GameUtils.createParticleEffect(this, bumper.x, bumper.y, 0x6B2C3E, 6);
 
         const bonusText = this.add.text(bumper.x, bumper.y - 30, '2x!', {
             fontFamily: 'Arial Black',
             fontSize: 20,
-            color: '#DA70D6',
-            stroke: '#FFFFFF',
+            color: '#E87461',
+            stroke: '#000000',
             strokeThickness: 2
         }).setOrigin(0.5);
 
@@ -534,13 +534,13 @@ class ClickerGame extends Phaser.Scene {
             }
         });
 
-        GameUtils.createParticleEffect(this, flipper.x, flipper.y, 0xFF6347, 5);
+        GameUtils.createParticleEffect(this, flipper.x, flipper.y, 0xE87461, 5);
 
         const flipText = this.add.text(flipper.x, flipper.y + 20, 'FLIP!', {
             fontFamily: 'Arial Black',
             fontSize: 18,
-            color: '#FF6347',
-            stroke: '#FFFFFF',
+            color: '#0AA1DD',
+            stroke: '#000000',
             strokeThickness: 2
         }).setOrigin(0.5);
 
@@ -553,36 +553,36 @@ class ClickerGame extends Phaser.Scene {
         });
     }
 
-    removeCoinFromArray(coinObj) {
-        const index = this.coinObjects.indexOf(coinObj);
+    removeSkullFromArray(skullObj) {
+        const index = this.skullObjects.indexOf(skullObj);
         if (index > -1) {
-            this.coinObjects.splice(index, 1);
+            this.skullObjects.splice(index, 1);
         }
     }
 
     update() {
         if (!this.timer) return;
-        
+
         this.timeText.setText(`Time: ${Math.ceil(this.timer.getRemainingSeconds())}`);
-        
-        this.coinObjects.forEach(coin => {
-            coin.updateValueText();
-            coin.update();
+
+        this.skullObjects.forEach(skull => {
+            skull.updateValueText();
+            skull.update();
         });
-        
-        if (!this.bigCoinSpawned && this.timer.getRemainingSeconds() <= 5) {
-            this.spawnCoin(true);
-            this.bigCoinSpawned = true;
+
+        if (!this.bigSkullSpawned && this.timer.getRemainingSeconds() <= 5) {
+            this.spawnSkull(true);
+            this.bigSkullSpawned = true;
         }
     }
 
     gameOver() {
-        this.coinObjects.forEach(coin => {
-            coin.sprite.setVelocity(0, 0);
-            if (!coin.isBig) coin.sprite.play('vanish');
-            coin.destroy();
+        this.skullObjects.forEach(skull => {
+            skull.sprite.setVelocity(0, 0);
+            if (!skull.isBig) skull.sprite.play('vanish');
+            skull.destroy();
         });
-        this.coinObjects = [];
+        this.skullObjects = [];
 
         this.input.off('gameobjectdown');
 
@@ -595,7 +595,7 @@ class ClickerGame extends Phaser.Scene {
     }
 
     shutdown() {
-        this.coinObjects = [];
+        this.skullObjects = [];
         this.basketSprites = [];
         this.bumperSprites = [];
         this.flipperSprites = [];

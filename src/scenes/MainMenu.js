@@ -14,9 +14,9 @@ class MainMenu extends Phaser.Scene {
     }
 
     createUI() {
-        const totalCoins = this.registry.get('totalCoins');
+        const totalSkulls = this.registry.get('totalSkulls');
         const highscore = this.registry.get('highscore');
-        
+
         const textStyle = {
             fontFamily: 'Arial Black',
             fontSize: 38,
@@ -25,21 +25,22 @@ class MainMenu extends Phaser.Scene {
             strokeThickness: 4
         };
 
-        const totalCoinsText = this.add.text(32, 32, `Total Coins: ${totalCoins}`, textStyle);
+        const totalSkullsText = this.add.text(32, 32, `Total Skulls: ${totalSkulls}`, textStyle);
         const bestRoundText = this.add.text(32, 80, `Best Round: ${highscore}`, textStyle);
-        
-        this.addFloatingAnimation([totalCoinsText, bestRoundText]);
+
+        this.addFloatingAnimation([totalSkullsText, bestRoundText]);
 
         const instructions = [
-            "SUPER COIN GOD PRO",
+            "SUPER SKULL GOD PRO",
             "CHAMPIONSHIP EDITION",
             "",
-            "How many coins can you",
-            "click in 10 seconds?",
+            "How many skulls can you",
+            "collect for the Skull God?",
             "",
-            "Your coins NEVER reset!",
+            "Buy upgrades in the shop",
+            "& collect more skulls!",
             "",
-            "Click anywhere to Start!"
+            "SKULLS FOR THE SKULL GOD!"
         ];
 
         const instructionText = this.add.text(512, 400, instructions, {
