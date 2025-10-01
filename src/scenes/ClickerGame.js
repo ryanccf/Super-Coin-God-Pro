@@ -20,6 +20,7 @@ class ClickerGame extends Phaser.Scene {
         this.coinObjects = [];
         this.basketSprites = [];
         this.bumperSprites = [];
+        this.flipperSprites = [];
     }
 
     create() {
@@ -68,6 +69,7 @@ class ClickerGame extends Phaser.Scene {
     createGameObjects() {
         this.createBaskets();
         this.createBumpers();
+        this.createFlippers();
     }
 
     createBaskets() {
@@ -85,18 +87,47 @@ class ClickerGame extends Phaser.Scene {
     }
 
     setupBasketDragging(basket, originalPos) {
+        let lastValidX = originalPos.x;
+
         basket.on('drag', (pointer, dragX, dragY) => {
-            basket.x = dragX;
-            basket.y = originalPos.y;
-            basket.body.x = dragX - 35;
-            basket.body.y = originalPos.y - 20;
-            
             const basketPositions = this.registry.get('baskets');
+            const bumperPositions = this.registry.get('bumpers');
+            const flipperPositions = this.registry.get('flippers');
             const index = this.basketSprites.indexOf(basket);
-            if (index !== -1 && basketPositions[index]) {
-                basketPositions[index].x = dragX;
-                this.registry.set('baskets', basketPositions);
+
+            // Create temporary position array without current basket
+            const otherBaskets = basketPositions.filter((_, i) => i !== index);
+            const allOtherObjects = [...otherBaskets, ...bumperPositions, ...flipperPositions];
+
+            // Check if new position is valid
+            if (PositionManager.isValidPosition(dragX, originalPos.y, allOtherObjects, PositionManager.MIN_DISTANCE)) {
+                basket.x = dragX;
+                basket.y = originalPos.y;
+                basket.body.x = dragX - 35;
+                basket.body.y = originalPos.y - 20;
+                lastValidX = dragX;
+
+                if (index !== -1 && basketPositions[index]) {
+                    basketPositions[index].x = dragX;
+                    this.registry.set('baskets', basketPositions);
+                }
+            } else {
+                // Snap back to last valid position
+                basket.x = lastValidX;
+                basket.body.x = lastValidX - 35;
             }
+        });
+
+        basket.on('dragend', () => {
+            this.tweens.add({
+                targets: basket,
+                scaleX: 1.15,
+                scaleY: 1.15,
+                duration: 150,
+                yoyo: true,
+                ease: 'Back.easeOut'
+            });
+            GameUtils.createParticleEffect(this, basket.x, basket.y, 0x8B4513, 4);
         });
     }
 
@@ -116,20 +147,54 @@ class ClickerGame extends Phaser.Scene {
     }
 
     setupBumperDragging(bumper) {
-        bumper.on('drag', (pointer, dragX, dragY) => {
-            bumper.x = dragX;
-            bumper.y = dragY;
-            bumper.body.x = dragX - 20;
-            bumper.body.y = dragY - 20;
-            bumper.body.updateFromGameObject();
+        let lastValidX = bumper.x;
+        let lastValidY = bumper.y;
 
+        bumper.on('drag', (pointer, dragX, dragY) => {
+            const basketPositions = this.registry.get('baskets');
             const bumperPositions = this.registry.get('bumpers');
+            const flipperPositions = this.registry.get('flippers');
             const index = this.bumperSprites.indexOf(bumper);
-            if (index !== -1 && bumperPositions[index]) {
-                bumperPositions[index].x = dragX;
-                bumperPositions[index].y = dragY;
-                this.registry.set('bumpers', bumperPositions);
+
+            // Create temporary position array without current bumper
+            const otherBumpers = bumperPositions.filter((_, i) => i !== index);
+            const allOtherObjects = [...basketPositions, ...otherBumpers, ...flipperPositions];
+
+            // Check if new position is valid
+            if (PositionManager.isValidPosition(dragX, dragY, allOtherObjects, PositionManager.MIN_DISTANCE)) {
+                bumper.x = dragX;
+                bumper.y = dragY;
+                bumper.body.x = dragX - 20;
+                bumper.body.y = dragY - 20;
+                bumper.body.updateFromGameObject();
+                lastValidX = dragX;
+                lastValidY = dragY;
+
+                if (index !== -1 && bumperPositions[index]) {
+                    bumperPositions[index].x = dragX;
+                    bumperPositions[index].y = dragY;
+                    this.registry.set('bumpers', bumperPositions);
+                }
+            } else {
+                // Snap back to last valid position
+                bumper.x = lastValidX;
+                bumper.y = lastValidY;
+                bumper.body.x = lastValidX - 20;
+                bumper.body.y = lastValidY - 20;
+                bumper.body.updateFromGameObject();
             }
+        });
+
+        bumper.on('dragend', () => {
+            this.tweens.add({
+                targets: bumper,
+                scaleX: 1.3,
+                scaleY: 1.3,
+                duration: 150,
+                yoyo: true,
+                ease: 'Back.easeOut'
+            });
+            GameUtils.createParticleEffect(this, bumper.x, bumper.y, COLORS.PURPLE, 4);
         });
     }
 
@@ -145,6 +210,91 @@ class ClickerGame extends Phaser.Scene {
         });
     }
 
+    createFlippers() {
+        const flipperPositions = this.registry.get('flippers');
+        flipperPositions.forEach(pos => {
+            const flipper = this.add.image(pos.x, pos.y, 'flipper');
+            flipper.setInteractive({ draggable: true });
+            this.physics.add.existing(flipper, true);
+            flipper.body.setSize(60, 15);
+
+            if (pos.facingLeft) {
+                // LEFT Flipper: pivot (dot) on LEFT side, extends to the right
+                // Origin at the left where dot is, at top edge for pivot point
+                flipper.setOrigin(0.2, 0);
+                flipper.setAngle(30);  // Rest: angles downward to the right
+            } else {
+                // RIGHT Flipper: pivot (dot) on RIGHT side, extends to the left
+                // Origin at the right where dot would be, at top edge for pivot point
+                flipper.setOrigin(0.8, 0);
+                flipper.setAngle(-30);  // Rest: angles downward to the left
+            }
+
+            flipper.facingLeft = pos.facingLeft;
+            this.flipperSprites.push(flipper);
+
+            this.setupFlipperDragging(flipper);
+        });
+    }
+
+    setupFlipperDragging(flipper) {
+        let lastValidX = flipper.x;
+        let lastValidY = flipper.y;
+
+        flipper.on('drag', (pointer, dragX, dragY) => {
+            const basketPositions = this.registry.get('baskets');
+            const bumperPositions = this.registry.get('bumpers');
+            const flipperPositions = this.registry.get('flippers');
+            const index = this.flipperSprites.indexOf(flipper);
+
+            // Create temporary position array without current flipper
+            const otherFlippers = flipperPositions.filter((_, i) => i !== index);
+            const allOtherObjects = [...basketPositions, ...bumperPositions, ...otherFlippers];
+
+            // Check if new position is valid
+            if (PositionManager.isValidPosition(dragX, dragY, allOtherObjects, PositionManager.MIN_DISTANCE)) {
+                flipper.x = dragX;
+                flipper.y = dragY;
+                flipper.body.x = dragX - 30;
+                flipper.body.y = dragY - 7.5;
+                flipper.body.updateFromGameObject();
+                lastValidX = dragX;
+                lastValidY = dragY;
+
+                if (index !== -1 && flipperPositions[index]) {
+                    flipperPositions[index].x = dragX;
+                    flipperPositions[index].y = dragY;
+                    this.registry.set('flippers', flipperPositions);
+                }
+            } else {
+                // Snap back to last valid position
+                flipper.x = lastValidX;
+                flipper.y = lastValidY;
+                flipper.body.x = lastValidX - 30;
+                flipper.body.y = lastValidY - 7.5;
+                flipper.body.updateFromGameObject();
+            }
+        });
+
+        flipper.on('dragend', () => {
+            const restAngle = flipper.facingLeft ? 30 : -30;
+            this.tweens.add({
+                targets: flipper,
+                angle: restAngle + (flipper.facingLeft ? 10 : -10),
+                scaleX: 1.1,
+                scaleY: 1.1,
+                duration: 150,
+                yoyo: true,
+                ease: 'Back.easeOut',
+                onComplete: () => {
+                    flipper.setAngle(restAngle);
+                    flipper.setScale(1);
+                }
+            });
+            GameUtils.createParticleEffect(this, flipper.x, flipper.y, 0xFF6347, 4);
+        });
+    }
+
     setupPhysics() {}
 
     setupCollisionForCoin(coin) {
@@ -155,11 +305,19 @@ class ClickerGame extends Phaser.Scene {
                 });
             });
         }
-        
+
         if (this.bumperSprites.length > 0) {
             this.bumperSprites.forEach(bumper => {
                 this.physics.add.collider(coin.sprite, bumper, (coinSprite, bumper) => {
                     this.handleBumperCollision(coinSprite, bumper);
+                });
+            });
+        }
+
+        if (this.flipperSprites.length > 0) {
+            this.flipperSprites.forEach(flipper => {
+                this.physics.add.collider(coin.sprite, flipper, (coinSprite, flipper) => {
+                    this.handleFlipperCollision(coinSprite, flipper);
                 });
             });
         }
@@ -218,13 +376,12 @@ class ClickerGame extends Phaser.Scene {
     handleBasketCollection(coinSprite, basket) {
         const coinObj = this.coinObjects.find(c => c.sprite === coinSprite);
         if (!coinObj || !coinObj.collectInBasket(basket)) return;
-        
-        const bonusValue = coinObj.value + 1;
-        this.addScore(bonusValue);
-        this.showBasketBonusText(basket.x, basket.y, bonusValue);
+
+        this.addScore(coinObj.value);
+        this.showBasketBonusText(basket.x, basket.y, coinObj.value);
         this.updateScoreDisplay();
         this.removeCoinFromArray(coinObj);
-        
+
         if (this.coinObjects.length < this.maxCoins) {
             this.spawnCoin();
         }
@@ -233,10 +390,21 @@ class ClickerGame extends Phaser.Scene {
     handleBumperCollision(coinSprite, bumper) {
         const coinObj = this.coinObjects.find(c => c.sprite === coinSprite);
         if (!coinObj || !coinObj.canHitBumper(bumper)) return;
-        
+
         coinObj.hitBumper(bumper);
         coinObj.doubleValue();
         this.showBumperEffect(bumper);
+    }
+
+    handleFlipperCollision(coinSprite, flipper) {
+        const coinObj = this.coinObjects.find(c => c.sprite === coinSprite);
+        if (!coinObj || !coinObj.canHitFlipper(flipper)) return;
+
+        const upwardForce = -500;
+        const horizontalForce = flipper.facingLeft ? -200 : 200;
+
+        coinObj.hitFlipper(flipper, upwardForce, horizontalForce);
+        this.showFlipperEffect(flipper);
     }
 
     clickBasket(basket) {
@@ -324,9 +492,9 @@ class ClickerGame extends Phaser.Scene {
             yoyo: true,
             ease: 'Back.easeOut'
         });
-        
+
         GameUtils.createParticleEffect(this, bumper.x, bumper.y, COLORS.PURPLE, 6);
-        
+
         const bonusText = this.add.text(bumper.x, bumper.y - 30, '2x!', {
             fontFamily: 'Arial Black',
             fontSize: 20,
@@ -341,6 +509,47 @@ class ClickerGame extends Phaser.Scene {
             alpha: 0,
             duration: 800,
             onComplete: () => bonusText.destroy()
+        });
+    }
+
+    showFlipperEffect(flipper) {
+        // LEFT flipper (pivot on left): rest at +30°, swings counter-clockwise to -30°
+        // RIGHT flipper (pivot on right): rest at -30°, swings clockwise to +30°
+        // The bottom of the flipper swings UP, then returns down
+        const restAngle = flipper.facingLeft ? 30 : -30;
+        const swingAngle = flipper.facingLeft ? -30 : 30;
+
+        this.tweens.add({
+            targets: flipper,
+            angle: swingAngle,
+            duration: 100,
+            ease: 'Back.easeOut',
+            onComplete: () => {
+                this.tweens.add({
+                    targets: flipper,
+                    angle: restAngle,
+                    duration: 200,
+                    ease: 'Bounce.easeOut'
+                });
+            }
+        });
+
+        GameUtils.createParticleEffect(this, flipper.x, flipper.y, 0xFF6347, 5);
+
+        const flipText = this.add.text(flipper.x, flipper.y + 20, 'FLIP!', {
+            fontFamily: 'Arial Black',
+            fontSize: 18,
+            color: '#FF6347',
+            stroke: '#FFFFFF',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+
+        this.tweens.add({
+            targets: flipText,
+            y: flipper.y - 10,
+            alpha: 0,
+            duration: 600,
+            onComplete: () => flipText.destroy()
         });
     }
 
@@ -389,5 +598,6 @@ class ClickerGame extends Phaser.Scene {
         this.coinObjects = [];
         this.basketSprites = [];
         this.bumperSprites = [];
+        this.flipperSprites = [];
     }
 }

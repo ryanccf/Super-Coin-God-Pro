@@ -6,6 +6,8 @@ class Coin {
         this.isBeingCollected = false;
         this.bumperCooldown = 0;
         this.lastBumperHit = null;
+        this.flipperCooldown = 0;
+        this.lastFlipperHit = null;
         
         this.sprite = scene.physics.add.sprite(x, y, isBig ? 'bigcoin' : 'coin_01');
         if (!isBig) this.sprite.play('rotate');
@@ -44,6 +46,12 @@ class Coin {
                 this.lastBumperHit = null;
             }
         }
+        if (this.flipperCooldown > 0) {
+            this.flipperCooldown -= 1;
+            if (this.flipperCooldown === 0) {
+                this.lastFlipperHit = null;
+            }
+        }
     }
 
     updateValueText() {
@@ -58,20 +66,34 @@ class Coin {
         return this.bumperCooldown <= 0 && this.lastBumperHit !== bumper;
     }
 
+    canHitFlipper(flipper) {
+        return this.flipperCooldown <= 0 && this.lastFlipperHit !== flipper;
+    }
+
     hitBumper(bumper) {
         const angle = Phaser.Math.Angle.Between(bumper.x, bumper.y, this.sprite.x, this.sprite.y);
         const force = 200;
-        
+
         const currentVelX = this.sprite.body.velocity.x;
         const currentVelY = this.sprite.body.velocity.y;
-        
+
         this.sprite.setVelocity(
             currentVelX + Math.cos(angle) * force,
             currentVelY + Math.sin(angle) * force
         );
-        
-        this.bumperCooldown = 3;
+
+        this.bumperCooldown = 5;
         this.lastBumperHit = bumper;
+    }
+
+    hitFlipper(flipper, upwardForce, horizontalForce) {
+        this.sprite.setVelocity(
+            this.sprite.body.velocity.x + horizontalForce,
+            upwardForce
+        );
+
+        this.flipperCooldown = 5;
+        this.lastFlipperHit = flipper;
     }
 
     doubleValue() {
@@ -96,18 +118,28 @@ class Coin {
 
     collect() {
         if (this.isBeingCollected) return false;
-        
+
         this.isBeingCollected = true;
         this.sprite.disableInteractive();
         this.sprite.setVelocity(0, 0);
         this.sprite.setAngularVelocity(0);
-        
+
         this.scene.cameras.main.shake(50, 0.005);
         GameUtils.createParticleEffect(this.scene, this.sprite.x, this.sprite.y, COLORS.GOLD, 8);
-        
+
         if (!this.isBig) {
             this.sprite.play('vanish');
             this.sprite.once('animationcomplete-vanish', () => this.destroy());
+            if (this.valueText) {
+                this.scene.tweens.add({
+                    targets: this.valueText,
+                    alpha: 0,
+                    duration: 200,
+                    onComplete: () => {
+                        if (this.valueText) this.valueText.destroy();
+                    }
+                });
+            }
         } else {
             this.scene.tweens.add({
                 targets: this.sprite,
@@ -117,18 +149,27 @@ class Coin {
                 duration: 500,
                 onComplete: () => this.destroy()
             });
+            if (this.valueText) {
+                this.scene.tweens.add({
+                    targets: this.valueText,
+                    scaleX: 2,
+                    scaleY: 2,
+                    alpha: 0,
+                    duration: 500
+                });
+            }
         }
-        
+
         return true;
     }
 
     collectInBasket(basket) {
         if (this.isBeingCollected) return false;
-        
+
         this.isBeingCollected = true;
         this.sprite.disableInteractive();
         this.sprite.setVelocity(0, 0);
-        
+
         this.scene.tweens.add({
             targets: this.sprite,
             x: basket.x,
@@ -139,7 +180,19 @@ class Coin {
             duration: 300,
             onComplete: () => this.destroy()
         });
-        
+
+        if (this.valueText) {
+            this.scene.tweens.add({
+                targets: this.valueText,
+                x: basket.x,
+                y: basket.y - 10,
+                scaleX: 0.5,
+                scaleY: 0.5,
+                alpha: 0,
+                duration: 300
+            });
+        }
+
         this.scene.tweens.add({
             targets: basket,
             scaleX: 1.1,
@@ -147,7 +200,7 @@ class Coin {
             duration: 100,
             yoyo: true
         });
-        
+
         return true;
     }
 }

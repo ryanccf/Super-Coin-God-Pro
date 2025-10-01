@@ -18,8 +18,10 @@ const DEFAULT_SAVE_DATA = {
     basketLevel: 0,
     timerLevel: 0,
     bumperLevel: 0,
+    flipperLevel: 0,
     gameTime: 10,
     baskets: [],
     bumpers: [],
+    flippers: [],
     highscore: 0
 };

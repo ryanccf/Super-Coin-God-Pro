@@ -65,6 +65,36 @@ class AssetCreator {
         bumperCanvas.destroy();
     }
 
+    static createFlipper(scene) {
+        const flipperCanvas = scene.add.graphics();
+
+        // Coffin shape - wider at shoulder, narrower at foot
+        flipperCanvas.fillStyle(0xFF6347);
+        flipperCanvas.beginPath();
+        flipperCanvas.moveTo(0, 7.5);
+        flipperCanvas.lineTo(15, 0);
+        flipperCanvas.lineTo(45, 0);
+        flipperCanvas.lineTo(60, 7.5);
+        flipperCanvas.lineTo(45, 15);
+        flipperCanvas.lineTo(15, 15);
+        flipperCanvas.closePath();
+        flipperCanvas.fillPath();
+
+        flipperCanvas.lineStyle(3, 0xFF4500);
+        flipperCanvas.beginPath();
+        flipperCanvas.moveTo(0, 7.5);
+        flipperCanvas.lineTo(15, 0);
+        flipperCanvas.lineTo(45, 0);
+        flipperCanvas.lineTo(60, 7.5);
+        flipperCanvas.lineTo(45, 15);
+        flipperCanvas.lineTo(15, 15);
+        flipperCanvas.closePath();
+        flipperCanvas.strokePath();
+
+        flipperCanvas.generateTexture('flipper', 60, 15);
+        flipperCanvas.destroy();
+    }
+
     static createBigCoin(scene) {
         const bigCoinCanvas = scene.add.graphics();
         bigCoinCanvas.fillStyle(COLORS.LIGHT_YELLOW);
