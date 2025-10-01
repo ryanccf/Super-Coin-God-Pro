@@ -121,7 +121,8 @@ class ClickerGame extends Phaser.Scene {
             bumper.y = dragY;
             bumper.body.x = dragX - 20;
             bumper.body.y = dragY - 20;
-            
+            bumper.body.updateFromGameObject();
+
             const bumperPositions = this.registry.get('bumpers');
             const index = this.bumperSprites.indexOf(bumper);
             if (index !== -1 && bumperPositions[index]) {
