@@ -4,10 +4,11 @@ class GameOver extends Phaser.Scene {
     }
 
     create() {
+        const centerX = GAME_CONFIG.WORLD_WIDTH / 2;
         const totalSkulls = this.registry.get('totalSkulls');
         const bestRound = this.registry.get('highscore');
 
-        this.add.image(512, 384, 'background');
+        this.add.image(centerX, 384, 'background');
 
         const message = [
             "Time's Up!",
@@ -18,7 +19,7 @@ class GameOver extends Phaser.Scene {
             "Click to Continue"
         ];
 
-        this.add.text(512, 384, message, {
+        this.add.text(centerX, 384, message, {
             fontFamily: 'Arial Black',
             fontSize: 36,
             color: '#ffffff',
