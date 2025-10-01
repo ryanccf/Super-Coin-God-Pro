@@ -11,15 +11,16 @@ class Shop extends Phaser.Scene {
     }
 
     setupBackground() {
-        this.add.image(512, 384, 'background');
+        this.add.image(GAME_CONFIG.WORLD_WIDTH / 2, 384, 'background');
     }
 
     createHeader() {
+        const centerX = GAME_CONFIG.WORLD_WIDTH / 2;
         const totalSkulls = this.registry.get('totalSkulls');
         const maxSkulls = this.registry.get('maxSkulls');
         const gameTime = this.registry.get('gameTime');
 
-        this.add.text(512, 60, 'SKULL SHOP', {
+        this.add.text(centerX, 60, 'SKULL SHOP', {
             fontFamily: 'Arial Black',
             fontSize: 48,
             color: '#FFEB3B',
@@ -27,7 +28,7 @@ class Shop extends Phaser.Scene {
             strokeThickness: 6
         }).setOrigin(0.5);
 
-        this.add.text(512, 120, `Your Skulls: ${totalSkulls}`, {
+        this.add.text(centerX, 120, `Your Skulls: ${totalSkulls}`, {
             fontFamily: 'Arial Black',
             fontSize: 28,
             color: '#ffffff',
@@ -35,7 +36,7 @@ class Shop extends Phaser.Scene {
             strokeThickness: 4
         }).setOrigin(0.5);
 
-        this.add.text(512, 160, `Max Skulls: ${maxSkulls} | Game Time: ${gameTime}s`, {
+        this.add.text(centerX, 160, `Max Skulls: ${maxSkulls} | Game Time: ${gameTime}s`, {
             fontFamily: 'Arial Black',
             fontSize: 28,
             color: '#ffffff',
@@ -45,16 +46,17 @@ class Shop extends Phaser.Scene {
     }
 
     createUpgradeButtons() {
+        const centerX = GAME_CONFIG.WORLD_WIDTH / 2;
         const upgrades = this.getUpgradeData();
 
         upgrades.forEach((upgrade, index) => {
             let x, y;
             if (index === 4) {
                 // Flipper button - move to right side of third row
-                x = 814;
+                x = centerX + 302;
                 y = 260 + Math.floor(index / 2) * 110;
             } else {
-                x = 210 + (index % 2) * 604;
+                x = centerX - 302 + (index % 2) * 604;
                 y = 260 + Math.floor(index / 2) * 110;
             }
             this.createUpgradeButton(x, y, upgrade);
@@ -95,7 +97,7 @@ class Shop extends Phaser.Scene {
                 cost: GameUtils.calculateUpgradeCost(25, timerLevel, 1.8),
                 canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(25, timerLevel, 1.8),
                 canPurchase: true,
-                color: 0x0AA1DD,  // Cyan blue
+                color: 0x1F3A5F,  // Dark blue
                 action: () => this.buyTimerUpgrade()
             },
             {
@@ -145,8 +147,9 @@ class Shop extends Phaser.Scene {
     }
 
     createNavigationButtons() {
-        this.createNavButton(230, 670, 'BACK', () => this.scene.start('MainMenu'));
-        this.createNavButton(794, 670, 'PLAY', () => this.scene.start('ClickerGame'));
+        const centerX = GAME_CONFIG.WORLD_WIDTH / 2;
+        this.createNavButton(centerX - 282, 670, 'BACK', () => this.scene.start('MainMenu'));
+        this.createNavButton(centerX + 282, 670, 'PLAY', () => this.scene.start('ClickerGame'));
     }
 
     createNavButton(x, y, text, callback) {

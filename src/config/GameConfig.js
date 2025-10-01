@@ -1,12 +1,14 @@
 const GAME_CONFIG = {
-    WORLD_WIDTH: 1024,
+    WORLD_WIDTH: 1366,
     WORLD_HEIGHT: 768,
+    PLAY_AREA_WIDTH: 1024,
+    SIDEBAR_WIDTH: 342,
     FLOOR_Y: 680,
     GRAVITY: 400,
     PHYSICS_BOUNDS: {
-        x: 0, 
-        y: -400, 
-        width: 1024, 
+        x: 0,
+        y: -400,
+        width: 1024,
         height: 768 + 310
     }
 };

@@ -36,7 +36,12 @@ class ClickerGame extends Phaser.Scene {
     setupWorld() {
         this.add.image(512, 384, 'background');
         this.add.image(512, GAME_CONFIG.FLOOR_Y, 'floor').setOrigin(0.5, 0);
-        
+
+        // Create dark grey sidebar
+        const sidebar = this.add.graphics();
+        sidebar.fillStyle(0x333333);
+        sidebar.fillRect(GAME_CONFIG.PLAY_AREA_WIDTH, 0, GAME_CONFIG.SIDEBAR_WIDTH, GAME_CONFIG.WORLD_HEIGHT);
+
         this.physics.world.setBounds(
             GAME_CONFIG.PHYSICS_BOUNDS.x,
             GAME_CONFIG.PHYSICS_BOUNDS.y,
@@ -46,24 +51,21 @@ class ClickerGame extends Phaser.Scene {
     }
 
     createUI() {
+        const sidebarX = GAME_CONFIG.PLAY_AREA_WIDTH + 30;
         const textStyle = {
             fontFamily: 'Arial Black',
-            fontSize: 38,
-            color: '#ffffff',
-            stroke: '#000000',
-            strokeThickness: 8
+            fontSize: 32,
+            color: '#ffffff'
         };
 
-        this.roundScoreText = this.add.text(32, 32, `Round: ${this.roundScore}`, textStyle).setDepth(1);
-        this.totalSkullsText = this.add.text(32, 80, `Total: ${this.totalSkulls}`, textStyle).setDepth(1);
-        this.maxSkullsText = this.add.text(32, 128, `Max: ${this.maxSkulls}`, {
+        this.roundScoreText = this.add.text(sidebarX, 100, `Round: ${this.roundScore}`, textStyle).setDepth(1);
+        this.totalSkullsText = this.add.text(sidebarX, 160, `Total: ${this.totalSkulls}`, textStyle).setDepth(1);
+        this.maxSkullsText = this.add.text(sidebarX, 220, `Max: ${this.maxSkulls}`, {
             fontFamily: 'Arial Black',
-            fontSize: 24,
-            color: '#FFEB3B',
-            stroke: '#000000',
-            strokeThickness: 8
+            fontSize: 28,
+            color: '#ffffff'
         }).setDepth(1);
-        this.timeText = this.add.text(1024 - 32, 32, `Time: ${this.gameTime}`, textStyle).setOrigin(1, 0).setDepth(1);
+        this.timeText = this.add.text(sidebarX, 40, `Time: ${this.gameTime}`, textStyle).setDepth(1);
     }
 
     createGameObjects() {

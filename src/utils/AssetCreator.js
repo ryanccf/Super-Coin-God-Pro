@@ -109,23 +109,23 @@ class AssetCreator {
         // Coffin shape - wider at shoulder, narrower at foot
         flipperCanvas.fillStyle(0xE87461);  // Coral from palette
         flipperCanvas.beginPath();
-        flipperCanvas.moveTo(0, 7.5);
-        flipperCanvas.lineTo(15, 0);
+        flipperCanvas.moveTo(60, 7.5);
         flipperCanvas.lineTo(45, 0);
-        flipperCanvas.lineTo(60, 7.5);
-        flipperCanvas.lineTo(45, 15);
+        flipperCanvas.lineTo(15, 0);
+        flipperCanvas.lineTo(0, 7.5);
         flipperCanvas.lineTo(15, 15);
+        flipperCanvas.lineTo(45, 15);
         flipperCanvas.closePath();
         flipperCanvas.fillPath();
 
         flipperCanvas.lineStyle(3, 0xB34E00);  // Dark orange from palette
         flipperCanvas.beginPath();
-        flipperCanvas.moveTo(0, 7.5);
-        flipperCanvas.lineTo(15, 0);
+        flipperCanvas.moveTo(60, 7.5);
         flipperCanvas.lineTo(45, 0);
-        flipperCanvas.lineTo(60, 7.5);
-        flipperCanvas.lineTo(45, 15);
+        flipperCanvas.lineTo(15, 0);
+        flipperCanvas.lineTo(0, 7.5);
         flipperCanvas.lineTo(15, 15);
+        flipperCanvas.lineTo(45, 15);
         flipperCanvas.closePath();
         flipperCanvas.strokePath();
 
@@ -186,14 +186,19 @@ class AssetCreator {
 
     static createFloor(scene) {
         const floorCanvas = scene.add.graphics();
+        const floorHeight = GAME_CONFIG.WORLD_HEIGHT - GAME_CONFIG.FLOOR_Y;
         floorCanvas.fillStyle(0x4A4A4A);  // Medium gray
-        floorCanvas.fillRect(0, 0, GAME_CONFIG.WORLD_WIDTH, 70);
+        floorCanvas.fillRect(0, 0, GAME_CONFIG.PLAY_AREA_WIDTH, floorHeight);
         floorCanvas.lineStyle(2, 0x2A2A2A);  // Darker gray
-        for (let i = 0; i < 15; i++) {
-            const y = 10 + (i * 4);
-            floorCanvas.lineBetween(0, y, GAME_CONFIG.WORLD_WIDTH, y);
+
+        const lineSpacing = 4;
+        const numLines = Math.floor(floorHeight / lineSpacing);
+        for (let i = 0; i < numLines; i++) {
+            const y = i * lineSpacing;
+            floorCanvas.lineBetween(0, y, GAME_CONFIG.PLAY_AREA_WIDTH, y);
         }
-        floorCanvas.generateTexture('floor', GAME_CONFIG.WORLD_WIDTH, 70);
+
+        floorCanvas.generateTexture('floor', GAME_CONFIG.PLAY_AREA_WIDTH, floorHeight);
         floorCanvas.destroy();
     }
 }

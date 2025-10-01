@@ -10,10 +10,11 @@ class MainMenu extends Phaser.Scene {
     }
 
     setupBackground() {
-        this.add.image(512, 384, 'background');
+        this.add.image(GAME_CONFIG.WORLD_WIDTH / 2, 384, 'background');
     }
 
     createUI() {
+        const centerX = GAME_CONFIG.WORLD_WIDTH / 2;
         const totalSkulls = this.registry.get('totalSkulls');
         const highscore = this.registry.get('highscore');
 
@@ -43,7 +44,7 @@ class MainMenu extends Phaser.Scene {
             "SKULLS FOR THE SKULL GOD!"
         ];
 
-        const instructionText = this.add.text(512, 400, instructions, {
+        const instructionText = this.add.text(centerX, 400, instructions, {
             fontFamily: 'Arial Black',
             fontSize: 28,
             color: '#6B4E71',
@@ -54,9 +55,9 @@ class MainMenu extends Phaser.Scene {
 
         this.addPulseAnimation(instructionText);
 
-        this.createButton(256, 650, 'PLAY', 0xFF6347, () => this.scene.start('ClickerGame'));
-        this.createButton(512, 650, 'SHOP', COLORS.MINT_GREEN, () => this.scene.start('Shop'));
-        this.createButton(768, 650, 'SETTINGS', COLORS.SOFT_PINK, () => this.scene.start('Settings'));
+        this.createButton(centerX - 256, 650, 'PLAY', 0xFF6347, () => this.scene.start('ClickerGame'));
+        this.createButton(centerX, 650, 'SHOP', COLORS.MINT_GREEN, () => this.scene.start('Shop'));
+        this.createButton(centerX + 256, 650, 'SETTINGS', COLORS.SOFT_PINK, () => this.scene.start('Settings'));
     }
 
     createButton(x, y, text, color, callback) {
