@@ -45,3 +45,7 @@ function copyRecursive(src, dest) {
 copyRecursive(srcDir, srcDest);
 console.log('Copied src/ to www/src/');
 console.log('Web assets ready for Capacitor sync...');
+
+// Note: After running 'npx cap sync', manually set landscape orientation in:
+// android/app/src/main/AndroidManifest.xml
+// Add: android:screenOrientation="landscape" to the <activity> tag
