@@ -23,7 +23,7 @@ class Shop extends Phaser.Scene {
         this.add.text(centerX, 60, 'SKULL SHOP', {
             fontFamily: 'Arial Black',
             fontSize: 48,
-            color: '#FFEB3B',
+            color: '#ffffff',
             stroke: '#000000',
             strokeThickness: 6
         }).setOrigin(0.5);
@@ -137,6 +137,8 @@ class Shop extends Phaser.Scene {
             fontFamily: 'Arial Black',
             fontSize: 18,
             color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 2,
             align: 'center'
         }).setOrigin(0.5);
 
@@ -161,7 +163,9 @@ class Shop extends Phaser.Scene {
         const buttonText = this.add.text(x, y, text, {
             fontFamily: 'Arial Black',
             fontSize: 20,
-            color: '#ffffff'
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 2
         }).setOrigin(0.5);
 
         button.on('pointerdown', callback);

@@ -8,6 +8,7 @@ class Skull {
         this.lastBumperHit = null;
         this.flipperCooldown = 0;
         this.lastFlipperHit = null;
+        this.bumperHitCount = 0;
 
         this.sprite = scene.physics.add.sprite(x, y, isBig ? 'bigskull' : 'skull_01');
         if (!isBig) this.sprite.play('rotate');
@@ -20,8 +21,8 @@ class Skull {
         this.valueText = scene.add.text(x, y, value.toString(), {
             fontFamily: 'Arial Black',
             fontSize: isBig ? 20 : 16,
-            color: '#000000',
-            stroke: '#FFFFFF',
+            color: '#ffffff',
+            stroke: '#000000',
             strokeThickness: isBig ? 3 : 2,
             fixedWidth: 0
         }).setOrigin(0.5).setDepth(10);
@@ -88,6 +89,10 @@ class Skull {
             currentVelY + Math.sin(angle) * pushForce
         );
 
+        // Apply diminishing multiplier based on hit count
+        this.applyBumperMultiplier();
+        this.bumperHitCount++;
+
         this.bumperCooldown = 5;
         this.lastBumperHit = bumper;
     }
@@ -98,16 +103,28 @@ class Skull {
             upwardForce
         );
 
+        // Add +1 to skull value
+        this.value += 1;
+        if (this.valueText) {
+            this.valueText.setText(this.value.toString());
+        }
+
         this.flipperCooldown = 5;
         this.lastFlipperHit = flipper;
     }
 
-    doubleValue() {
-        this.value *= 2;
+    applyBumperMultiplier() {
+        // Diminishing returns formula:
+        // 1st hit: +100% (×2), 2nd: +50% (×1.5), 3rd: +25% (×1.25), 4th: +12.5% (×1.125), etc.
+        // multiplierBonus = 1.0 / (2^bumperHitCount)
+        const multiplierBonus = 1.0 / Math.pow(2, this.bumperHitCount);
+        const totalMultiplier = 1 + multiplierBonus;
+
+        this.value = Math.floor(this.value * totalMultiplier);
         this.sprite.setTint(COLORS.LIGHT_YELLOW);
         if (this.valueText) {
             this.valueText.setText(this.value.toString());
-            this.valueText.setColor('#000000');
+            this.valueText.setColor('#ffffff');
         }
     }
 

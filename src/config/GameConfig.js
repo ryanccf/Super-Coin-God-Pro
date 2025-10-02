@@ -13,6 +13,21 @@ const GAME_CONFIG = {
     }
 };
 
+const UNLOCKABLES = [
+    'Skull Helm',
+    'Skull Dagger',
+    'Skull Gauntlets',
+    'Skull Breastplate',
+    'Skull Skirt',
+    'Skull Boots',
+    'Skull Shoulderpads',
+    'Skull Shield',
+    'Skull Belt',
+    'Skull Bow',
+    'Skull Quiver',
+    'Skull Sword'
+];
+
 const DEFAULT_SAVE_DATA = {
     totalSkulls: 200,
     maxSkulls: 10,
@@ -25,5 +40,6 @@ const DEFAULT_SAVE_DATA = {
     baskets: [],
     bumpers: [],
     flippers: [],
-    highscore: 0
+    highscore: 0,
+    unlockedItems: []
 };

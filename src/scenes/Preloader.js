@@ -33,6 +33,14 @@ class Preloader extends Phaser.Scene {
         AssetCreator.createFlipper(this);
         AssetCreator.createBigSkull(this);
         AssetCreator.createFloor(this);
+
+        // Load unlockables
+        UNLOCKABLES.forEach(name => {
+            this.load.image(name, `src/assets/images/unlockables/${name}.png`);
+        });
+
+        // Load rewards
+        this.load.image('Skull Knight', 'src/assets/images/rewards/Skull Knight.png');
     }
 
     create() {

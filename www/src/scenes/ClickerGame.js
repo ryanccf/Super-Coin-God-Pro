@@ -394,7 +394,6 @@ class ClickerGame extends Phaser.Scene {
         if (!skullObj || !skullObj.canHitBumper(bumper)) return;
 
         skullObj.hitBumper(bumper);
-        skullObj.doubleValue();
         this.showBumperEffect(bumper);
     }
 

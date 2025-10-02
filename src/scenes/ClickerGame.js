@@ -55,7 +55,9 @@ class ClickerGame extends Phaser.Scene {
         const textStyle = {
             fontFamily: 'Arial Black',
             fontSize: 32,
-            color: '#ffffff'
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 4
         };
 
         this.roundScoreText = this.add.text(sidebarX, 100, `Round: ${this.roundScore}`, textStyle).setDepth(1);
@@ -63,7 +65,9 @@ class ClickerGame extends Phaser.Scene {
         this.maxSkullsText = this.add.text(sidebarX, 220, `Max: ${this.maxSkulls}`, {
             fontFamily: 'Arial Black',
             fontSize: 28,
-            color: '#ffffff'
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 4
         }).setDepth(1);
         this.timeText = this.add.text(sidebarX, 40, `Time: ${this.gameTime}`, textStyle).setDepth(1);
     }
@@ -394,7 +398,6 @@ class ClickerGame extends Phaser.Scene {
         if (!skullObj || !skullObj.canHitBumper(bumper)) return;
 
         skullObj.hitBumper(bumper);
-        skullObj.doubleValue();
         this.showBumperEffect(bumper);
     }
 
@@ -445,14 +448,11 @@ class ClickerGame extends Phaser.Scene {
     }
 
     showBonusText(x, y, value) {
-        const color = value > 1 ? '#FFEB3B' : '#0AA1DD';
-        const stroke = value > 1 ? '#8B1A1A' : '#000000';
-        
         const bonusText = this.add.text(x, y - 30, `+${value}!`, {
             fontFamily: 'Arial Black',
             fontSize: value > 10 ? 36 : 24,
-            color: color,
-            stroke: stroke,
+            color: '#ffffff',
+            stroke: '#000000',
             strokeThickness: value > 10 ? 4 : 2
         }).setOrigin(0.5);
 
@@ -471,7 +471,7 @@ class ClickerGame extends Phaser.Scene {
         const bonusText = this.add.text(x, y - 40, `+${value}!`, {
             fontFamily: 'Arial Black',
             fontSize: 20,
-            color: '#FFEB3B',
+            color: '#ffffff',
             stroke: '#000000',
             strokeThickness: 2
         }).setOrigin(0.5);
@@ -500,7 +500,7 @@ class ClickerGame extends Phaser.Scene {
         const bonusText = this.add.text(bumper.x, bumper.y - 30, '2x!', {
             fontFamily: 'Arial Black',
             fontSize: 20,
-            color: '#E87461',
+            color: '#ffffff',
             stroke: '#000000',
             strokeThickness: 2
         }).setOrigin(0.5);
@@ -541,7 +541,7 @@ class ClickerGame extends Phaser.Scene {
         const flipText = this.add.text(flipper.x, flipper.y + 20, 'FLIP!', {
             fontFamily: 'Arial Black',
             fontSize: 18,
-            color: '#0AA1DD',
+            color: '#ffffff',
             stroke: '#000000',
             strokeThickness: 2
         }).setOrigin(0.5);

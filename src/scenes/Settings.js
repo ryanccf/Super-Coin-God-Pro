@@ -9,7 +9,7 @@ class Settings extends Phaser.Scene {
         this.add.text(512, 200, 'SETTINGS', {
             fontFamily: 'Arial Black',
             fontSize: 64,
-            color: '#FFD700',
+            color: '#ffffff',
             stroke: '#000000',
             strokeThickness: 8
         }).setOrigin(0.5);
@@ -29,13 +29,17 @@ class Settings extends Phaser.Scene {
         this.add.text(512, 360, 'RESET EVERYTHING', {
             fontFamily: 'Arial Black',
             fontSize: 24,
-            color: '#ffffff'
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 3
         }).setOrigin(0.5);
 
         this.add.text(512, 450, 'Warning: This will reset all your progress!', {
             fontFamily: 'Arial',
             fontSize: 20,
-            color: '#ffcccc'
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 2
         }).setOrigin(0.5);
 
         resetButtonBg.on('pointerdown', () => this.resetGame());
@@ -52,7 +56,9 @@ class Settings extends Phaser.Scene {
         this.add.text(512, 580, 'BACK', {
             fontFamily: 'Arial Black',
             fontSize: 28,
-            color: '#ffffff'
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 3
         }).setOrigin(0.5);
 
         backButtonBg.on('pointerdown', () => this.scene.start('MainMenu'));

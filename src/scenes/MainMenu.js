@@ -21,8 +21,8 @@ class MainMenu extends Phaser.Scene {
         const textStyle = {
             fontFamily: 'Arial Black',
             fontSize: 38,
-            color: '#6B4E71',
-            stroke: '#FFFFFF',
+            color: '#ffffff',
+            stroke: '#000000',
             strokeThickness: 4
         };
 
@@ -47,17 +47,18 @@ class MainMenu extends Phaser.Scene {
         const instructionText = this.add.text(centerX, 400, instructions, {
             fontFamily: 'Arial Black',
             fontSize: 28,
-            color: '#6B4E71',
-            stroke: '#FFFFFF',
+            color: '#ffffff',
+            stroke: '#000000',
             strokeThickness: 3,
             align: 'center'
         }).setOrigin(0.5);
 
         this.addPulseAnimation(instructionText);
 
-        this.createButton(centerX - 256, 650, 'PLAY', 0xFF6347, () => this.scene.start('ClickerGame'));
-        this.createButton(centerX, 650, 'SHOP', COLORS.MINT_GREEN, () => this.scene.start('Shop'));
-        this.createButton(centerX + 256, 650, 'SETTINGS', COLORS.SOFT_PINK, () => this.scene.start('Settings'));
+        this.createButton(centerX - 384, 650, 'PLAY', 0xFF6347, () => this.scene.start('ClickerGame'));
+        this.createButton(centerX - 128, 650, 'SHOP', COLORS.MINT_GREEN, () => this.scene.start('Shop'));
+        this.createButton(centerX + 128, 650, 'ALTAR', 0x4A4A4A, () => this.scene.start('Altar'));
+        this.createButton(centerX + 384, 650, 'SETTINGS', COLORS.SOFT_PINK, () => this.scene.start('Settings'));
     }
 
     createButton(x, y, text, color, callback) {
@@ -71,7 +72,9 @@ class MainMenu extends Phaser.Scene {
         const buttonText = this.add.text(x, y, text, {
             fontFamily: 'Arial Black',
             fontSize: 28,
-            color: '#4A5D4A'
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 3
         }).setOrigin(0.5);
 
         GameUtils.addButtonEffect(buttonBg, buttonText, callback);
