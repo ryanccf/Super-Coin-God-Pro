@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "sync": "cp index.html www/ && cp -r src www/ && npx cap sync",
+    "sync": "node scripts/sync.js && npx cap sync",
     "open:android": "npx cap open android",
     "open:ios": "npx cap open ios"
   },

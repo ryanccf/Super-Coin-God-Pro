@@ -1,2 +1,11 @@
 .vs/slnx.sqlite
 /.vs
+
+# Capacitor
+android/
+ios/
+node_modules/
+www/
+
+# npm
+package-lock.json
