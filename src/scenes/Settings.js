@@ -22,7 +22,7 @@ class Settings extends Phaser.Scene {
         const resetButtonBg = this.add.graphics();
         resetButtonBg.fillStyle(0xCC0000);
         resetButtonBg.fillRoundedRect(362, 320, 300, 80, 10);
-        resetButtonBg.lineStyle(4, 0xFF0000);
+        resetButtonBg.lineStyle(3, 0x000000);
         resetButtonBg.strokeRoundedRect(362, 320, 300, 80, 10);
         resetButtonBg.setInteractive(new Phaser.Geom.Rectangle(362, 320, 300, 80), Phaser.Geom.Rectangle.Contains);
 
@@ -49,7 +49,7 @@ class Settings extends Phaser.Scene {
         const backButtonBg = this.add.graphics();
         backButtonBg.fillStyle(COLORS.ROYAL_BLUE);
         backButtonBg.fillRoundedRect(412, 550, 200, 60, 10);
-        backButtonBg.lineStyle(4, 0x6495ED);
+        backButtonBg.lineStyle(3, 0x000000);
         backButtonBg.strokeRoundedRect(412, 550, 200, 60, 10);
         backButtonBg.setInteractive(new Phaser.Geom.Rectangle(412, 550, 200, 60), Phaser.Geom.Rectangle.Contains);
 

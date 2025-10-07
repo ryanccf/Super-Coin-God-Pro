@@ -21,8 +21,11 @@ class ClickerGame extends Phaser.Scene {
         this.basketSprites = [];
         this.bumperSprites = [];
         this.flipperSprites = [];
+        this.triangleSprites = [];
         this.selectedFlipper = null;
         this.flipperManipulator = null;
+        this.selectedTriangle = null;
+        this.triangleManipulator = null;
         this.clickedGameObject = false;
     }
 
@@ -79,6 +82,7 @@ class ClickerGame extends Phaser.Scene {
         this.createBaskets();
         this.createBumpers();
         this.createFlippers();
+        this.createTriangles();
     }
 
     createBaskets() {
@@ -225,7 +229,11 @@ class ClickerGame extends Phaser.Scene {
             const flipper = this.add.image(pos.x, pos.y, 'flipper');
             flipper.setInteractive({ draggable: true });
             this.physics.add.existing(flipper, true);
-            flipper.body.setSize(60, 15);
+
+            // Use circular hitbox for better rotation collision
+            // Radius of ~20 captures the main body area
+            flipper.body.setCircle(20);
+            flipper.body.setOffset(10, -12.5); // Offset to center on the pivot point
 
             // Set origin based on facing direction
             if (pos.facingLeft) {
@@ -255,6 +263,29 @@ class ClickerGame extends Phaser.Scene {
         });
     }
 
+    createTriangles() {
+        const trianglePositions = this.registry.get('triangles');
+        trianglePositions.forEach(pos => {
+            const triangle = this.add.image(pos.x, pos.y, 'triangle');
+            triangle.setInteractive({ draggable: true });
+            this.physics.add.existing(triangle, true);
+
+            // Square hitbox - 120x120
+            triangle.body.setSize(120, 120);
+
+            // Load saved angle or use default (pointing up)
+            const angle = pos.angle !== undefined ? pos.angle : 0;
+            triangle.setAngle(angle);
+
+            // Store the base angle - this is the "true" angle without animations
+            triangle.baseAngle = angle;
+
+            this.triangleSprites.push(triangle);
+
+            this.setupTriangleDragging(triangle);
+        });
+    }
+
     setupFlipperDragging(flipper) {
         let lastValidX = flipper.x;
         let lastValidY = flipper.y;
@@ -281,8 +312,6 @@ class ClickerGame extends Phaser.Scene {
             if (PositionManager.isValidPosition(dragX, dragY, allOtherObjects, PositionManager.MIN_DISTANCE)) {
                 flipper.x = dragX;
                 flipper.y = dragY;
-                flipper.body.x = dragX - 30;
-                flipper.body.y = dragY - 7.5;
                 flipper.body.updateFromGameObject();
                 lastValidX = dragX;
                 lastValidY = dragY;
@@ -296,8 +325,6 @@ class ClickerGame extends Phaser.Scene {
                 // Snap back to last valid position
                 flipper.x = lastValidX;
                 flipper.y = lastValidY;
-                flipper.body.x = lastValidX - 30;
-                flipper.body.y = lastValidY - 7.5;
                 flipper.body.updateFromGameObject();
             }
         });
@@ -332,6 +359,63 @@ class ClickerGame extends Phaser.Scene {
         });
     }
 
+    setupTriangleDragging(triangle) {
+        let lastValidX = triangle.x;
+        let lastValidY = triangle.y;
+        let isDragging = false;
+
+        // Track when drag actually starts
+        triangle.on('dragstart', () => {
+            isDragging = true;
+            lastValidX = triangle.x;
+            lastValidY = triangle.y;
+        });
+
+        triangle.on('drag', (pointer, dragX, dragY) => {
+            const basketPositions = this.registry.get('baskets');
+            const bumperPositions = this.registry.get('bumpers');
+            const flipperPositions = this.registry.get('flippers');
+            const trianglePositions = this.registry.get('triangles');
+            const index = this.triangleSprites.indexOf(triangle);
+
+            // Create temporary position array without current triangle
+            const otherTriangles = trianglePositions.filter((_, i) => i !== index);
+            const allOtherObjects = [...basketPositions, ...bumperPositions, ...flipperPositions, ...otherTriangles];
+
+            // Check if new position is valid
+            if (PositionManager.isValidPosition(dragX, dragY, allOtherObjects, PositionManager.MIN_DISTANCE)) {
+                triangle.x = dragX;
+                triangle.y = dragY;
+                triangle.body.x = dragX - 60;
+                triangle.body.y = dragY - 60;
+                triangle.body.updateFromGameObject();
+                lastValidX = dragX;
+                lastValidY = dragY;
+
+                if (index !== -1 && trianglePositions[index]) {
+                    trianglePositions[index].x = dragX;
+                    trianglePositions[index].y = dragY;
+                    this.registry.set('triangles', trianglePositions);
+                }
+            } else {
+                // Snap back to last valid position
+                triangle.x = lastValidX;
+                triangle.y = lastValidY;
+                triangle.body.x = lastValidX - 60;
+                triangle.body.y = lastValidY - 60;
+                triangle.body.updateFromGameObject();
+            }
+        });
+
+        triangle.on('dragend', () => {
+            // Only create particles if we actually dragged
+            if (isDragging) {
+                GameUtils.createParticleEffect(this, triangle.x, triangle.y, 0xFF8C42, 4);
+            }
+            isDragging = false;
+        });
+    }
+
     selectFlipper(flipper) {
         // Deselect previous flipper if any
         if (this.selectedFlipper !== flipper) {
@@ -355,6 +439,31 @@ class ClickerGame extends Phaser.Scene {
             this.flipperManipulator.hide();
         }
         this.selectedFlipper = null;
+    }
+
+    selectTriangle(triangle) {
+        // Deselect previous triangle if any
+        if (this.selectedTriangle !== triangle) {
+            this.deselectTriangle();
+        }
+
+        this.selectedTriangle = triangle;
+
+        // Create manipulator if it doesn't exist
+        if (!this.triangleManipulator) {
+            this.triangleManipulator = new TriangleManipulator(this, triangle);
+        } else {
+            this.triangleManipulator.triangle = triangle;
+        }
+
+        this.triangleManipulator.show();
+    }
+
+    deselectTriangle() {
+        if (this.triangleManipulator) {
+            this.triangleManipulator.hide();
+        }
+        this.selectedTriangle = null;
     }
 
     setupPhysics() {}
@@ -383,6 +492,14 @@ class ClickerGame extends Phaser.Scene {
                 });
             });
         }
+
+        if (this.triangleSprites.length > 0) {
+            this.triangleSprites.forEach(triangle => {
+                this.physics.add.collider(skull.sprite, triangle, (skullSprite, triangle) => {
+                    this.handleTriangleCollision(skullSprite, triangle);
+                });
+            });
+        }
     }
 
     setupInput() {
@@ -404,6 +521,14 @@ class ClickerGame extends Phaser.Scene {
                 }
             }
 
+            if (this.triangleManipulator && this.triangleManipulator.isActive) {
+                if (gameObject === this.triangleManipulator.rotationHandle ||
+                    gameObject === this.triangleManipulator.outline ||
+                    gameObject === this.triangleManipulator.rotationIcon) {
+                    return; // Ignore clicks on manipulator UI
+                }
+            }
+
             if (gameObject.texture) {
                 if (gameObject.texture.key.startsWith('skull_')) {
                     this.handleSkullClick(gameObject);
@@ -412,11 +537,19 @@ class ClickerGame extends Phaser.Scene {
                 } else if (gameObject.texture.key === 'flipper') {
                     const flipper = this.flipperSprites.find(f => f === gameObject);
                     if (flipper) {
+                        this.deselectTriangle();
                         this.selectFlipper(flipper);
+                    }
+                } else if (gameObject.texture.key === 'triangle') {
+                    const triangle = this.triangleSprites.find(t => t === gameObject);
+                    if (triangle) {
+                        this.deselectFlipper();
+                        this.selectTriangle(triangle);
                     }
                 } else {
                     // Clicked some other game object (basket, bumper, etc.) - deselect
                     this.deselectFlipper();
+                    this.deselectTriangle();
                 }
             }
         });
@@ -447,8 +580,21 @@ class ClickerGame extends Phaser.Scene {
                     );
                 }
 
+                if (!clickedControls && this.triangleManipulator && this.triangleManipulator.isActive) {
+                    clickedControls = Phaser.Geom.Circle.Contains(
+                        new Phaser.Geom.Circle(
+                            this.triangleManipulator.rotationHandle.x,
+                            this.triangleManipulator.rotationHandle.y,
+                            12
+                        ),
+                        pointer.x,
+                        pointer.y
+                    );
+                }
+
                 if (!clickedControls) {
                     this.deselectFlipper();
+                    this.deselectTriangle();
                 }
             }
 
@@ -534,6 +680,11 @@ class ClickerGame extends Phaser.Scene {
 
         skullObj.hitFlipper(flipper, horizontalForce, verticalForce);
         this.showFlipperEffect(flipper);
+    }
+
+    handleTriangleCollision(skullSprite, triangle) {
+        // Triangles are static - skulls just roll off them naturally
+        // No force application needed
     }
 
     clickBasket(basket) {
@@ -708,6 +859,11 @@ class ClickerGame extends Phaser.Scene {
             this.flipperManipulator.updateUI();
         }
 
+        // Update manipulator UI to follow triangle
+        if (this.triangleManipulator && this.triangleManipulator.isActive) {
+            this.triangleManipulator.updateUI();
+        }
+
         // Safety check: ensure flippers maintain correct scale and angle when not tweening
         this.flipperSprites.forEach(flipper => {
             if (!this.tweens.isTweening(flipper)) {
@@ -717,6 +873,15 @@ class ClickerGame extends Phaser.Scene {
                 }
                 if (flipper.baseAngle !== undefined && flipper.angle !== flipper.baseAngle) {
                     flipper.setAngle(flipper.baseAngle);
+                }
+            }
+        });
+
+        // Safety check: ensure triangles maintain correct angle when not tweening
+        this.triangleSprites.forEach(triangle => {
+            if (!this.tweens.isTweening(triangle)) {
+                if (triangle.baseAngle !== undefined && triangle.angle !== triangle.baseAngle) {
+                    triangle.setAngle(triangle.baseAngle);
                 }
             }
         });
@@ -745,9 +910,14 @@ class ClickerGame extends Phaser.Scene {
             this.flipperManipulator.destroy();
             this.flipperManipulator = null;
         }
+        if (this.triangleManipulator) {
+            this.triangleManipulator.destroy();
+            this.triangleManipulator = null;
+        }
         this.skullObjects = [];
         this.basketSprites = [];
         this.bumperSprites = [];
         this.flipperSprites = [];
+        this.triangleSprites = [];
     }
 }

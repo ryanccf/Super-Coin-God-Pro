@@ -65,7 +65,7 @@ class MainMenu extends Phaser.Scene {
         const buttonBg = this.add.graphics();
         buttonBg.fillStyle(color);
         buttonBg.fillRoundedRect(x-100, y-30, 200, 60, 15);
-        buttonBg.lineStyle(4, color - 0x101010);
+        buttonBg.lineStyle(3, 0x000000);
         buttonBg.strokeRoundedRect(x-100, y-30, 200, 60, 15);
         buttonBg.setInteractive(new Phaser.Geom.Rectangle(x-100, y-30, 200, 60), Phaser.Geom.Rectangle.Contains);
         

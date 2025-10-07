@@ -50,14 +50,16 @@ class Shop extends Phaser.Scene {
         const upgrades = this.getUpgradeData();
 
         upgrades.forEach((upgrade, index) => {
+            // 2 buttons left, 4 buttons right layout
             let x, y;
-            if (index === 4) {
-                // Flipper button - move to right side of third row
-                x = centerX + 302;
-                y = 260 + Math.floor(index / 2) * 110;
+            if (index < 2) {
+                // Left column (2 buttons)
+                x = centerX - 302;
+                y = 240 + index * 95;
             } else {
-                x = centerX - 302 + (index % 2) * 604;
-                y = 260 + Math.floor(index / 2) * 110;
+                // Right column (4 buttons)
+                x = centerX + 302;
+                y = 240 + (index - 2) * 95;
             }
             this.createUpgradeButton(x, y, upgrade);
         });
@@ -70,10 +72,12 @@ class Shop extends Phaser.Scene {
         const basketLevel = this.registry.get('basketLevel');
         const bumperLevel = this.registry.get('bumperLevel');
         const flipperLevel = this.registry.get('flipperLevel');
+        const triangleLevel = this.registry.get('triangleLevel');
 
         const baskets = this.registry.get('baskets');
         const bumpers = this.registry.get('bumpers');
         const flippers = this.registry.get('flippers');
+        const triangles = this.registry.get('triangles');
 
         return [
             {
@@ -85,14 +89,6 @@ class Shop extends Phaser.Scene {
                 action: () => this.buySkullUpgrade()
             },
             {
-                name: 'Buy Basket',
-                cost: GameUtils.calculateUpgradeCost(50, basketLevel, 1.7),
-                canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(50, basketLevel, 1.7),
-                canPurchase: PositionManager.findBasketPosition(baskets, bumpers, flippers) !== null,
-                color: 0xB34E00,  // Dark orange
-                action: () => this.buyBasket()
-            },
-            {
                 name: 'Game Time +2s',
                 cost: GameUtils.calculateUpgradeCost(25, timerLevel, 1.8),
                 canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(25, timerLevel, 1.8),
@@ -101,20 +97,36 @@ class Shop extends Phaser.Scene {
                 action: () => this.buyTimerUpgrade()
             },
             {
-                name: 'Buy Bumper',
-                cost: GameUtils.calculateUpgradeCost(25, bumperLevel, 1.7),
-                canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(25, bumperLevel, 1.7),
-                canPurchase: PositionManager.findBumperPosition(bumpers, baskets, flippers) !== null,
-                color: 0x6B2C3E,  // Deep burgundy
-                action: () => this.buyBumper()
+                name: 'Buy Basket',
+                cost: GameUtils.calculateUpgradeCost(50, basketLevel, 1.7),
+                canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(50, basketLevel, 1.7),
+                canPurchase: PositionManager.findBasketPosition(baskets, bumpers, flippers, triangles) !== null,
+                color: 0xB34E00,  // Dark orange
+                action: () => this.buyBasket()
+            },
+            {
+                name: 'Buy Square',
+                cost: GameUtils.calculateUpgradeCost(10, triangleLevel, 1.5),
+                canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(10, triangleLevel, 1.5),
+                canPurchase: PositionManager.findTrianglePosition(triangles, baskets, bumpers, flippers) !== null,
+                color: 0xCC6600,  // Dark orange
+                action: () => this.buyTriangle()
             },
             {
                 name: 'Buy Flipper',
                 cost: GameUtils.calculateUpgradeCost(20, flipperLevel, 1.5),
                 canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(20, flipperLevel, 1.5),
-                canPurchase: PositionManager.findFlipperPosition(flippers, baskets, bumpers) !== null,
+                canPurchase: PositionManager.findFlipperPosition(flippers, baskets, bumpers, triangles) !== null,
                 color: 0xE87461,  // Coral
                 action: () => this.buyFlipper()
+            },
+            {
+                name: 'Buy Bumper',
+                cost: GameUtils.calculateUpgradeCost(25, bumperLevel, 1.7),
+                canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(25, bumperLevel, 1.7),
+                canPurchase: PositionManager.findBumperPosition(bumpers, baskets, flippers, triangles) !== null,
+                color: 0x6B2C3E,  // Deep burgundy
+                action: () => this.buyBumper()
             }
         ];
     }
@@ -122,20 +134,20 @@ class Shop extends Phaser.Scene {
     createUpgradeButton(x, y, upgrade) {
         const available = upgrade.canAfford && upgrade.canPurchase;
         const color = available ? upgrade.color : 0x4A4A4A;  // Gray for unavailable
-        
+
         const button = this.add.graphics();
         button.fillStyle(color);
-        button.fillRoundedRect(x-140, y-40, 280, 80, 10);
-        button.lineStyle(4, color - 0x101010);
-        button.strokeRoundedRect(x-140, y-40, 280, 80, 10);
-        
+        button.fillRoundedRect(x-140, y-35, 280, 70, 10);
+        button.lineStyle(3, 0x000000);
+        button.strokeRoundedRect(x-140, y-35, 280, 70, 10);
+
         let buttonText = `${upgrade.name}\nCost: ${upgrade.cost}`;
         if (!upgrade.canPurchase) buttonText += ' (No space!)';
         else if (!upgrade.canAfford) buttonText += ' (Need more!)';
-        
+
         this.add.text(x, y, buttonText, {
             fontFamily: 'Arial Black',
-            fontSize: 18,
+            fontSize: 16,
             color: '#ffffff',
             stroke: '#000000',
             strokeThickness: 2,
@@ -143,7 +155,7 @@ class Shop extends Phaser.Scene {
         }).setOrigin(0.5);
 
         if (available) {
-            button.setInteractive(new Phaser.Geom.Rectangle(x-140, y-40, 280, 80), Phaser.Geom.Rectangle.Contains);
+            button.setInteractive(new Phaser.Geom.Rectangle(x-140, y-35, 280, 70), Phaser.Geom.Rectangle.Contains);
             button.on('pointerdown', upgrade.action);
         }
     }
@@ -158,6 +170,8 @@ class Shop extends Phaser.Scene {
         const button = this.add.graphics();
         button.fillStyle(text === 'BACK' ? 0x0B5563 : 0x8B1A1A);  // Dark teal or dark red
         button.fillRoundedRect(x-60, y-20, 120, 40, 6);
+        button.lineStyle(3, 0x000000);
+        button.strokeRoundedRect(x-60, y-20, 120, 40, 6);
         button.setInteractive(new Phaser.Geom.Rectangle(x-60, y-20, 120, 40), Phaser.Geom.Rectangle.Contains);
 
         const buttonText = this.add.text(x, y, text, {
@@ -196,7 +210,8 @@ class Shop extends Phaser.Scene {
         const baskets = this.registry.get('baskets');
         const bumpers = this.registry.get('bumpers');
         const flippers = this.registry.get('flippers');
-        const newPosition = PositionManager.findBasketPosition(baskets, bumpers, flippers);
+        const triangles = this.registry.get('triangles');
+        const newPosition = PositionManager.findBasketPosition(baskets, bumpers, flippers, triangles);
 
         if (this.registry.get('totalSkulls') >= cost && newPosition) {
             this.registry.set('totalSkulls', this.registry.get('totalSkulls') - cost);
@@ -213,7 +228,8 @@ class Shop extends Phaser.Scene {
         const baskets = this.registry.get('baskets');
         const bumpers = this.registry.get('bumpers');
         const flippers = this.registry.get('flippers');
-        const newPosition = PositionManager.findBumperPosition(bumpers, baskets, flippers);
+        const triangles = this.registry.get('triangles');
+        const newPosition = PositionManager.findBumperPosition(bumpers, baskets, flippers, triangles);
 
         if (this.registry.get('totalSkulls') >= cost && newPosition) {
             this.registry.set('totalSkulls', this.registry.get('totalSkulls') - cost);
@@ -225,12 +241,32 @@ class Shop extends Phaser.Scene {
         }
     }
 
+    buyTriangle() {
+        const cost = GameUtils.calculateUpgradeCost(10, this.registry.get('triangleLevel'), 1.5);
+        const baskets = this.registry.get('baskets');
+        const bumpers = this.registry.get('bumpers');
+        const flippers = this.registry.get('flippers');
+        const triangles = this.registry.get('triangles');
+        const newPosition = PositionManager.findTrianglePosition(triangles, baskets, bumpers, flippers);
+
+        if (this.registry.get('totalSkulls') >= cost && newPosition) {
+            this.registry.set('totalSkulls', this.registry.get('totalSkulls') - cost);
+            this.registry.set('triangleLevel', this.registry.get('triangleLevel') + 1);
+
+            newPosition.angle = 0;  // Default angle (pointing up)
+            triangles.push(newPosition);
+            this.registry.set('triangles', triangles);
+            this.scene.restart();
+        }
+    }
+
     buyFlipper() {
         const cost = GameUtils.calculateUpgradeCost(20, this.registry.get('flipperLevel'), 1.5);
         const baskets = this.registry.get('baskets');
         const bumpers = this.registry.get('bumpers');
         const flippers = this.registry.get('flippers');
-        const newPosition = PositionManager.findFlipperPosition(flippers, baskets, bumpers);
+        const triangles = this.registry.get('triangles');
+        const newPosition = PositionManager.findFlipperPosition(flippers, baskets, bumpers, triangles);
 
         if (this.registry.get('totalSkulls') >= cost && newPosition) {
             this.registry.set('totalSkulls', this.registry.get('totalSkulls') - cost);

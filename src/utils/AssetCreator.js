@@ -184,6 +184,26 @@ class AssetCreator {
         bigSkullCanvas.destroy();
     }
 
+    static createTriangle(scene) {
+        const triangleCanvas = scene.add.graphics();
+
+        // Square - 120px side length
+        const size = 120;
+
+        // Center the square
+        const centerX = 60;
+        const centerY = 60;
+
+        triangleCanvas.fillStyle(0xFF8C42);  // Orange
+        triangleCanvas.fillRect(centerX - size/2, centerY - size/2, size, size);
+
+        triangleCanvas.lineStyle(6, 0x000000);  // Black border, thicker
+        triangleCanvas.strokeRect(centerX - size/2, centerY - size/2, size, size);
+
+        triangleCanvas.generateTexture('triangle', 120, 120);
+        triangleCanvas.destroy();
+    }
+
     static createFloor(scene) {
         const floorCanvas = scene.add.graphics();
         const floorHeight = GAME_CONFIG.WORLD_HEIGHT - GAME_CONFIG.FLOOR_Y;

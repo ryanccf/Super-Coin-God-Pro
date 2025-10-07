@@ -143,7 +143,7 @@ class Altar extends Phaser.Scene {
         const color = canAfford ? 0x8B1A1A : 0x4A4A4A;  // Dark red or gray
         button.fillStyle(color);
         button.fillRoundedRect(centerX - 150, buttonY - 30, 300, 60, 10);
-        button.lineStyle(4, color - 0x101010);
+        button.lineStyle(3, 0x000000);
         button.strokeRoundedRect(centerX - 150, buttonY - 30, 300, 60, 10);
 
         const buttonText = this.add.text(centerX, buttonY, `PRAY (${cost} Skulls)`, {
@@ -176,6 +176,8 @@ class Altar extends Phaser.Scene {
         const button = this.add.graphics();
         button.fillStyle(0x0B5563);  // Dark teal
         button.fillRoundedRect(centerX - 60, buttonY - 20, 120, 40, 6);
+        button.lineStyle(3, 0x000000);
+        button.strokeRoundedRect(centerX - 60, buttonY - 20, 120, 40, 6);
         button.setInteractive(new Phaser.Geom.Rectangle(centerX - 60, buttonY - 20, 120, 40), Phaser.Geom.Rectangle.Contains);
 
         const buttonText = this.add.text(centerX, buttonY, 'BACK', {

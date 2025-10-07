@@ -36,10 +36,12 @@ const DEFAULT_SAVE_DATA = {
     timerLevel: 0,
     bumperLevel: 0,
     flipperLevel: 0,
+    triangleLevel: 0,
     gameTime: 10,
     baskets: [],
     bumpers: [],
     flippers: [],
+    triangles: [],
     highscore: 0,
     unlockedItems: []
 };
