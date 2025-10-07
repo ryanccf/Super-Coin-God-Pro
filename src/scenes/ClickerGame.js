@@ -21,6 +21,9 @@ class ClickerGame extends Phaser.Scene {
         this.basketSprites = [];
         this.bumperSprites = [];
         this.flipperSprites = [];
+        this.selectedFlipper = null;
+        this.flipperManipulator = null;
+        this.clickedGameObject = false;
     }
 
     create() {
@@ -224,17 +227,26 @@ class ClickerGame extends Phaser.Scene {
             this.physics.add.existing(flipper, true);
             flipper.body.setSize(60, 15);
 
+            // Set origin based on facing direction
             if (pos.facingLeft) {
-                // LEFT Flipper: pivot (dot) on LEFT side, extends to the right
-                // Origin at the left where dot is, at top edge for pivot point
                 flipper.setOrigin(0.2, 0);
-                flipper.setAngle(30);  // Rest: angles downward to the right
             } else {
-                // RIGHT Flipper: pivot (dot) on RIGHT side, extends to the left
-                // Origin at the right where dot would be, at top edge for pivot point
                 flipper.setOrigin(0.8, 0);
-                flipper.setAngle(-30);  // Rest: angles downward to the left
             }
+
+            // Load scaleX if flipper was flipped (default to 1 if not set)
+            const scaleX = pos.scaleX !== undefined ? pos.scaleX : 1;
+            flipper.setScale(scaleX, 1);
+
+            // Store the base scale - this is the "true" scale without animations
+            flipper.baseScaleX = scaleX;
+
+            // Load saved angle or use default (in degrees)
+            const angle = pos.angle !== undefined ? pos.angle : (pos.facingLeft ? 30 : -30);
+            flipper.setAngle(angle);
+
+            // Store the base angle - this is the "true" angle without animations
+            flipper.baseAngle = angle;
 
             flipper.facingLeft = pos.facingLeft;
             this.flipperSprites.push(flipper);
@@ -246,6 +258,14 @@ class ClickerGame extends Phaser.Scene {
     setupFlipperDragging(flipper) {
         let lastValidX = flipper.x;
         let lastValidY = flipper.y;
+        let isDragging = false;
+
+        // Track when drag actually starts
+        flipper.on('dragstart', () => {
+            isDragging = true;
+            lastValidX = flipper.x;
+            lastValidY = flipper.y;
+        });
 
         flipper.on('drag', (pointer, dragX, dragY) => {
             const basketPositions = this.registry.get('baskets');
@@ -283,22 +303,58 @@ class ClickerGame extends Phaser.Scene {
         });
 
         flipper.on('dragend', () => {
-            const restAngle = flipper.facingLeft ? 30 : -30;
-            this.tweens.add({
-                targets: flipper,
-                angle: restAngle + (flipper.facingLeft ? 10 : -10),
-                scaleX: 1.1,
-                scaleY: 1.1,
-                duration: 150,
-                yoyo: true,
-                ease: 'Back.easeOut',
-                onComplete: () => {
-                    flipper.setAngle(restAngle);
-                    flipper.setScale(1);
-                }
-            });
-            GameUtils.createParticleEffect(this, flipper.x, flipper.y, 0xE87461, 4);
+            // Only animate if we actually dragged
+            if (isDragging) {
+                const trueAngle = flipper.baseAngle;
+                const wobbleOffset = flipper.facingLeft ? 10 : -10;
+
+                // Simple angle-only animation - use baseAngle
+                this.tweens.add({
+                    targets: flipper,
+                    angle: trueAngle + wobbleOffset,
+                    duration: 100,
+                    ease: 'Back.easeOut',
+                    onComplete: () => {
+                        this.tweens.add({
+                            targets: flipper,
+                            angle: trueAngle,
+                            duration: 100,
+                            ease: 'Back.easeOut',
+                            onComplete: () => {
+                                flipper.setAngle(trueAngle);
+                            }
+                        });
+                    }
+                });
+                GameUtils.createParticleEffect(this, flipper.x, flipper.y, 0xE87461, 4);
+            }
+            isDragging = false;
         });
+    }
+
+    selectFlipper(flipper) {
+        // Deselect previous flipper if any
+        if (this.selectedFlipper !== flipper) {
+            this.deselectFlipper();
+        }
+
+        this.selectedFlipper = flipper;
+
+        // Create manipulator if it doesn't exist
+        if (!this.flipperManipulator) {
+            this.flipperManipulator = new FlipperManipulator(this, flipper);
+        } else {
+            this.flipperManipulator.flipper = flipper;
+        }
+
+        this.flipperManipulator.show();
+    }
+
+    deselectFlipper() {
+        if (this.flipperManipulator) {
+            this.flipperManipulator.hide();
+        }
+        this.selectedFlipper = null;
     }
 
     setupPhysics() {}
@@ -330,14 +386,74 @@ class ClickerGame extends Phaser.Scene {
     }
 
     setupInput() {
+        // Flag to track if gameobjectdown fired this click
+        // Phaser guarantees gameobjectdown fires BEFORE pointerdown
+        this.clickedGameObject = false;
+
         this.input.on('gameobjectdown', (pointer, gameObject) => {
+            this.clickedGameObject = true;
+
+            // Check if this is a manipulator UI element - if so, ignore it completely
+            if (this.flipperManipulator && this.flipperManipulator.isActive) {
+                if (gameObject === this.flipperManipulator.rotationHandle ||
+                    gameObject === this.flipperManipulator.flipButton ||
+                    gameObject === this.flipperManipulator.outline ||
+                    gameObject === this.flipperManipulator.rotationIcon ||
+                    gameObject === this.flipperManipulator.flipIcon) {
+                    return; // Ignore clicks on manipulator UI
+                }
+            }
+
             if (gameObject.texture) {
                 if (gameObject.texture.key.startsWith('skull_')) {
                     this.handleSkullClick(gameObject);
                 } else if (gameObject.texture.key === 'bigskull') {
                     this.handleSkullClick(gameObject);
+                } else if (gameObject.texture.key === 'flipper') {
+                    const flipper = this.flipperSprites.find(f => f === gameObject);
+                    if (flipper) {
+                        this.selectFlipper(flipper);
+                    }
+                } else {
+                    // Clicked some other game object (basket, bumper, etc.) - deselect
+                    this.deselectFlipper();
                 }
             }
+        });
+
+        // Handle clicks on empty space (when no game object was clicked)
+        this.input.on('pointerdown', (pointer) => {
+            // If gameobjectdown fired, the flag will be true
+            if (!this.clickedGameObject) {
+                // Clicked empty space - check if clicked controls
+                let clickedControls = false;
+                if (this.flipperManipulator && this.flipperManipulator.isActive) {
+                    clickedControls = Phaser.Geom.Circle.Contains(
+                        new Phaser.Geom.Circle(
+                            this.flipperManipulator.rotationHandle.x,
+                            this.flipperManipulator.rotationHandle.y,
+                            12
+                        ),
+                        pointer.x,
+                        pointer.y
+                    ) || Phaser.Geom.Circle.Contains(
+                        new Phaser.Geom.Circle(
+                            this.flipperManipulator.flipButton.x,
+                            this.flipperManipulator.flipButton.y,
+                            12
+                        ),
+                        pointer.x,
+                        pointer.y
+                    );
+                }
+
+                if (!clickedControls) {
+                    this.deselectFlipper();
+                }
+            }
+
+            // Reset flag for next click
+            this.clickedGameObject = false;
         });
     }
 
@@ -405,10 +521,18 @@ class ClickerGame extends Phaser.Scene {
         const skullObj = this.skullObjects.find(c => c.sprite === skullSprite);
         if (!skullObj || !skullObj.canHitFlipper(flipper)) return;
 
-        const upwardForce = -500;
-        const horizontalForce = flipper.facingLeft ? -200 : 200;
+        // Calculate force based on flipper's actual rotation angle
+        const flipperAngle = flipper.rotation;
+        const forceMagnitude = 500;
 
-        skullObj.hitFlipper(flipper, upwardForce, horizontalForce);
+        // Force perpendicular to flipper surface (normal vector)
+        // Adding 90 degrees (PI/2) to get perpendicular direction
+        const forceAngle = flipperAngle + Math.PI / 2;
+
+        const horizontalForce = Math.cos(forceAngle) * forceMagnitude * (flipper.scaleX > 0 ? 1 : -1);
+        const verticalForce = Math.sin(forceAngle) * forceMagnitude;
+
+        skullObj.hitFlipper(flipper, horizontalForce, verticalForce);
         this.showFlipperEffect(flipper);
     }
 
@@ -515,23 +639,25 @@ class ClickerGame extends Phaser.Scene {
     }
 
     showFlipperEffect(flipper) {
-        // LEFT flipper (pivot on left): rest at +30°, swings counter-clockwise to -30°
-        // RIGHT flipper (pivot on right): rest at -30°, swings clockwise to +30°
-        // The bottom of the flipper swings UP, then returns down
-        const restAngle = flipper.facingLeft ? 30 : -30;
-        const swingAngle = flipper.facingLeft ? -30 : 30;
+        // Use base angle to prevent drift
+        const trueAngle = flipper.baseAngle;
+        const swingOffset = flipper.facingLeft ? -20 : 20;
 
         this.tweens.add({
             targets: flipper,
-            angle: swingAngle,
+            angle: trueAngle + swingOffset,
             duration: 100,
             ease: 'Back.easeOut',
             onComplete: () => {
                 this.tweens.add({
                     targets: flipper,
-                    angle: restAngle,
+                    angle: trueAngle,
                     duration: 200,
-                    ease: 'Bounce.easeOut'
+                    ease: 'Bounce.easeOut',
+                    onComplete: () => {
+                        // Ensure exact return to base angle
+                        flipper.setAngle(trueAngle);
+                    }
                 });
             }
         });
@@ -576,6 +702,24 @@ class ClickerGame extends Phaser.Scene {
             this.spawnSkull(true);
             this.bigSkullSpawned = true;
         }
+
+        // Update manipulator UI to follow flipper
+        if (this.flipperManipulator && this.flipperManipulator.isActive) {
+            this.flipperManipulator.updateUI();
+        }
+
+        // Safety check: ensure flippers maintain correct scale and angle when not tweening
+        this.flipperSprites.forEach(flipper => {
+            if (!this.tweens.isTweening(flipper)) {
+                if (flipper.baseScaleX !== undefined &&
+                    (flipper.scaleX !== flipper.baseScaleX || flipper.scaleY !== 1)) {
+                    flipper.setScale(flipper.baseScaleX, 1);
+                }
+                if (flipper.baseAngle !== undefined && flipper.angle !== flipper.baseAngle) {
+                    flipper.setAngle(flipper.baseAngle);
+                }
+            }
+        });
     }
 
     gameOver() {
@@ -597,6 +741,10 @@ class ClickerGame extends Phaser.Scene {
     }
 
     shutdown() {
+        if (this.flipperManipulator) {
+            this.flipperManipulator.destroy();
+            this.flipperManipulator = null;
+        }
         this.skullObjects = [];
         this.basketSprites = [];
         this.bumperSprites = [];

@@ -97,10 +97,11 @@ class Skull {
         this.lastBumperHit = bumper;
     }
 
-    hitFlipper(flipper, upwardForce, horizontalForce) {
+    hitFlipper(flipper, horizontalForce, verticalForce) {
+        // Apply forces directly (not additive for vertical)
         this.sprite.setVelocity(
-            this.sprite.body.velocity.x + horizontalForce,
-            upwardForce
+            this.sprite.body.velocity.x * 0.3 + horizontalForce,
+            verticalForce
         );
 
         // Add +1 to skull value

@@ -238,6 +238,8 @@ class Shop extends Phaser.Scene {
 
             const facingLeft = flippers.length % 2 === 0;
             newPosition.facingLeft = facingLeft;
+            newPosition.angle = facingLeft ? 30 : -30;  // Default angle
+            newPosition.scaleX = 1;  // Default scale (not flipped)
             flippers.push(newPosition);
             this.registry.set('flippers', flippers);
             this.scene.restart();
