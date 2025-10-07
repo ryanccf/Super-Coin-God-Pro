@@ -133,25 +133,25 @@ class FlipperManipulator {
         const halfWidth = width / 2;
         const halfHeight = height / 2;
 
-        // Calculate corners based on flipper's origin and rotation
+        // Calculate corners based on flipper's origin
         const originOffsetX = (this.flipper.originX - 0.5) * width;
         const originOffsetY = (this.flipper.originY - 0.5) * height;
 
-        // When scaleX is negative, we need to invert the rotation
         // Use baseScaleX to avoid animation artifacts
         const baseScaleX = this.flipper.baseScaleX || this.flipper.scaleX;
         const isFlipped = baseScaleX < 0;
-        const effectiveRotation = isFlipped ? -this.flipper.rotation : this.flipper.rotation;
-        const cos = Math.cos(effectiveRotation);
-        const sin = Math.sin(effectiveRotation);
 
-        // Apply scaleX to the corner x-coordinates before rotation
+        // Apply scaleX to x-coordinates (handles horizontal flip)
         const corners = [
             { x: (-halfWidth - originOffsetX) * baseScaleX, y: -halfHeight - originOffsetY },
             { x: (halfWidth - originOffsetX) * baseScaleX, y: -halfHeight - originOffsetY },
             { x: (halfWidth - originOffsetX) * baseScaleX, y: halfHeight - originOffsetY },
             { x: (-halfWidth - originOffsetX) * baseScaleX, y: halfHeight - originOffsetY }
         ];
+
+        // Rotate corners using flipper's rotation
+        const cos = Math.cos(this.flipper.rotation);
+        const sin = Math.sin(this.flipper.rotation);
 
         const rotatedCorners = corners.map(corner => ({
             x: this.flipper.x + (corner.x * cos - corner.y * sin),
