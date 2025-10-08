@@ -14,6 +14,7 @@ class ClickerGame extends Phaser.Scene {
         this.maxSkulls = this.registry.get('maxSkulls');
         this.gameTime = this.registry.get('gameTime');
         this.bigSkullSpawned = false;
+        this.isGameOver = false;
     }
 
     initializeArrays() {
@@ -48,12 +49,38 @@ class ClickerGame extends Phaser.Scene {
         sidebar.fillStyle(0x333333);
         sidebar.fillRect(GAME_CONFIG.PLAY_AREA_WIDTH, 0, GAME_CONFIG.SIDEBAR_WIDTH, GAME_CONFIG.WORLD_HEIGHT);
 
-        this.physics.world.setBounds(
-            GAME_CONFIG.PHYSICS_BOUNDS.x,
-            GAME_CONFIG.PHYSICS_BOUNDS.y,
-            GAME_CONFIG.PHYSICS_BOUNDS.width,
-            GAME_CONFIG.PHYSICS_BOUNDS.height
-        );
+        // Create Matter world bounds (walls)
+        // Make walls tall enough to contain balls from spawn area (-500) to floor (730)
+        const wallHeight = 1300; // From y=-550 to y=750
+        const wallCenterY = (-550 + 750) / 2; // y=100
+
+        // Left wall
+        this.matter.add.rectangle(-25, wallCenterY, 50, wallHeight, {
+            isStatic: true,
+            label: 'wall',
+            restitution: 0.8
+        });
+
+        // Right wall (at play area boundary)
+        this.matter.add.rectangle(GAME_CONFIG.PLAY_AREA_WIDTH + 25, wallCenterY, 50, wallHeight, {
+            isStatic: true,
+            label: 'wall',
+            restitution: 0.8
+        });
+
+        // Top wall (far above screen to prevent balls escaping but allow spawning)
+        this.matter.add.rectangle(GAME_CONFIG.PLAY_AREA_WIDTH / 2, -550, GAME_CONFIG.PLAY_AREA_WIDTH, 50, {
+            isStatic: true,
+            label: 'wall',
+            restitution: 0.8
+        });
+
+        // Bottom wall/floor (at FLOOR_Y position)
+        this.matter.add.rectangle(GAME_CONFIG.PLAY_AREA_WIDTH / 2, GAME_CONFIG.FLOOR_Y + 50, GAME_CONFIG.PLAY_AREA_WIDTH, 100, {
+            isStatic: true,
+            label: 'floor',
+            restitution: 0.3
+        });
     }
 
     createUI() {
@@ -90,10 +117,18 @@ class ClickerGame extends Phaser.Scene {
         basketPositions.forEach(pos => {
             const basket = this.add.image(pos.x, pos.y, 'basket');
             basket.setInteractive({ draggable: true });
-            this.physics.add.existing(basket, true);
-            basket.body.setSize(70, 40);
+
+            // Create Matter body - semicircle/arc shape approximated with rectangle
+            this.matter.add.gameObject(basket, {
+                shape: { type: 'rectangle', width: 70, height: 40 },
+                isStatic: true,
+                label: 'basket',
+                isSensor: true  // Baskets are sensors (trigger zones)
+            });
+
+            basket.basket = true;  // Identification property
             this.basketSprites.push(basket);
-            
+
             this.setupBasketDragging(basket, pos);
             basket.on('pointerdown', () => this.clickBasket(basket));
         });
@@ -103,21 +138,24 @@ class ClickerGame extends Phaser.Scene {
         let lastValidX = originalPos.x;
 
         basket.on('drag', (pointer, dragX, dragY) => {
+            // CRITICAL: Stop processing if game is over
+            if (this.isGameOver || !basket.body) return;
+
             const basketPositions = this.registry.get('baskets');
             const bumperPositions = this.registry.get('bumpers');
             const flipperPositions = this.registry.get('flippers');
+            const trianglePositions = this.registry.get('triangles');
             const index = this.basketSprites.indexOf(basket);
 
             // Create temporary position array without current basket
             const otherBaskets = basketPositions.filter((_, i) => i !== index);
-            const allOtherObjects = [...otherBaskets, ...bumperPositions, ...flipperPositions];
+            const allOtherObjects = [...otherBaskets, ...bumperPositions, ...flipperPositions, ...trianglePositions];
 
             // Check if new position is valid
             if (PositionManager.isValidPosition(dragX, originalPos.y, allOtherObjects, PositionManager.MIN_DISTANCE)) {
                 basket.x = dragX;
                 basket.y = originalPos.y;
-                basket.body.x = dragX - 35;
-                basket.body.y = originalPos.y - 20;
+                this.matter.body.setPosition(basket.body, { x: dragX, y: originalPos.y });
                 lastValidX = dragX;
 
                 if (index !== -1 && basketPositions[index]) {
@@ -127,11 +165,14 @@ class ClickerGame extends Phaser.Scene {
             } else {
                 // Snap back to last valid position
                 basket.x = lastValidX;
-                basket.body.x = lastValidX - 35;
+                this.matter.body.setPosition(basket.body, { x: lastValidX, y: originalPos.y });
             }
         });
 
         basket.on('dragend', () => {
+            // CRITICAL: Stop processing if game is over
+            if (this.isGameOver) return;
+
             this.tweens.add({
                 targets: basket,
                 scaleX: 1.15,
@@ -149,11 +190,18 @@ class ClickerGame extends Phaser.Scene {
         bumperPositions.forEach(pos => {
             const bumper = this.add.image(pos.x, pos.y, 'bumper');
             bumper.setInteractive({ draggable: true });
-            this.physics.add.existing(bumper, true);
-            bumper.body.setSize(40, 40);
-            bumper.body.setCircle(20);
+
+            // Create Matter body - circular
+            this.matter.add.gameObject(bumper, {
+                shape: { type: 'circle', radius: 20 },
+                isStatic: true,
+                label: 'bumper',
+                restitution: 0.9  // Bouncy, custom collision handler applies extra force
+            });
+
+            bumper.bumper = true;  // Identification property
             this.bumperSprites.push(bumper);
-            
+
             this.setupBumperDragging(bumper);
             this.addBumperAnimation(bumper);
         });
@@ -164,22 +212,24 @@ class ClickerGame extends Phaser.Scene {
         let lastValidY = bumper.y;
 
         bumper.on('drag', (pointer, dragX, dragY) => {
+            // CRITICAL: Stop processing if game is over
+            if (this.isGameOver || !bumper.body) return;
+
             const basketPositions = this.registry.get('baskets');
             const bumperPositions = this.registry.get('bumpers');
             const flipperPositions = this.registry.get('flippers');
+            const trianglePositions = this.registry.get('triangles');
             const index = this.bumperSprites.indexOf(bumper);
 
             // Create temporary position array without current bumper
             const otherBumpers = bumperPositions.filter((_, i) => i !== index);
-            const allOtherObjects = [...basketPositions, ...otherBumpers, ...flipperPositions];
+            const allOtherObjects = [...basketPositions, ...otherBumpers, ...flipperPositions, ...trianglePositions];
 
             // Check if new position is valid
             if (PositionManager.isValidPosition(dragX, dragY, allOtherObjects, PositionManager.MIN_DISTANCE)) {
                 bumper.x = dragX;
                 bumper.y = dragY;
-                bumper.body.x = dragX - 20;
-                bumper.body.y = dragY - 20;
-                bumper.body.updateFromGameObject();
+                this.matter.body.setPosition(bumper.body, { x: dragX, y: dragY });
                 lastValidX = dragX;
                 lastValidY = dragY;
 
@@ -192,13 +242,14 @@ class ClickerGame extends Phaser.Scene {
                 // Snap back to last valid position
                 bumper.x = lastValidX;
                 bumper.y = lastValidY;
-                bumper.body.x = lastValidX - 20;
-                bumper.body.y = lastValidY - 20;
-                bumper.body.updateFromGameObject();
+                this.matter.body.setPosition(bumper.body, { x: lastValidX, y: lastValidY });
             }
         });
 
         bumper.on('dragend', () => {
+            // CRITICAL: Stop processing if game is over
+            if (this.isGameOver) return;
+
             this.tweens.add({
                 targets: bumper,
                 scaleX: 1.3,
@@ -228,35 +279,37 @@ class ClickerGame extends Phaser.Scene {
         flipperPositions.forEach(pos => {
             const flipper = this.add.image(pos.x, pos.y, 'flipper');
             flipper.setInteractive({ draggable: true });
-            this.physics.add.existing(flipper, true);
 
-            // Use circular hitbox for better rotation collision
-            // Radius of ~20 captures the main body area
-            flipper.body.setCircle(20);
-            flipper.body.setOffset(10, -12.5); // Offset to center on the pivot point
+            // Create Matter body - rectangle that rotates with sprite
+            this.matter.add.gameObject(flipper, {
+                shape: { type: 'rectangle', width: 60, height: 15 },
+                isStatic: true,
+                label: 'flipper'
+            });
 
             // Set origin based on facing direction
             if (pos.facingLeft) {
-                flipper.setOrigin(0.2, 0);
+                flipper.setOrigin(0.2, 0.5);
             } else {
-                flipper.setOrigin(0.8, 0);
+                flipper.setOrigin(0.8, 0.5);
             }
 
             // Load scaleX if flipper was flipped (default to 1 if not set)
             const scaleX = pos.scaleX !== undefined ? pos.scaleX : 1;
-            flipper.setScale(scaleX, 1);
+            flipper.setScale(scaleX, 1);  // setScale updates both sprite and Matter body
 
             // Store the base scale - this is the "true" scale without animations
             flipper.baseScaleX = scaleX;
 
             // Load saved angle or use default (in degrees)
             const angle = pos.angle !== undefined ? pos.angle : (pos.facingLeft ? 30 : -30);
-            flipper.setAngle(angle);
+            flipper.setRotation(Phaser.Math.DegToRad(angle));  // setRotation updates both sprite and body
 
             // Store the base angle - this is the "true" angle without animations
             flipper.baseAngle = angle;
 
             flipper.facingLeft = pos.facingLeft;
+            flipper.flipper = true;  // Identification property
             this.flipperSprites.push(flipper);
 
             this.setupFlipperDragging(flipper);
@@ -268,18 +321,22 @@ class ClickerGame extends Phaser.Scene {
         trianglePositions.forEach(pos => {
             const triangle = this.add.image(pos.x, pos.y, 'triangle');
             triangle.setInteractive({ draggable: true });
-            this.physics.add.existing(triangle, true);
 
-            // Square hitbox - 120x120
-            triangle.body.setSize(120, 120);
+            // Create Matter body - square that rotates with sprite!
+            this.matter.add.gameObject(triangle, {
+                shape: { type: 'rectangle', width: 120, height: 120 },
+                isStatic: true,
+                label: 'triangle'
+            });
 
             // Load saved angle or use default (pointing up)
             const angle = pos.angle !== undefined ? pos.angle : 0;
-            triangle.setAngle(angle);
+            triangle.setRotation(Phaser.Math.DegToRad(angle));  // setRotation updates both sprite and body
 
             // Store the base angle - this is the "true" angle without animations
             triangle.baseAngle = angle;
 
+            triangle.triangle = true;  // Identification property
             this.triangleSprites.push(triangle);
 
             this.setupTriangleDragging(triangle);
@@ -293,26 +350,32 @@ class ClickerGame extends Phaser.Scene {
 
         // Track when drag actually starts
         flipper.on('dragstart', () => {
+            // CRITICAL: Stop processing if game is over
+            if (this.isGameOver) return;
             isDragging = true;
             lastValidX = flipper.x;
             lastValidY = flipper.y;
         });
 
         flipper.on('drag', (pointer, dragX, dragY) => {
+            // CRITICAL: Stop processing if game is over
+            if (this.isGameOver || !flipper.body) return;
+
             const basketPositions = this.registry.get('baskets');
             const bumperPositions = this.registry.get('bumpers');
             const flipperPositions = this.registry.get('flippers');
+            const trianglePositions = this.registry.get('triangles');
             const index = this.flipperSprites.indexOf(flipper);
 
             // Create temporary position array without current flipper
             const otherFlippers = flipperPositions.filter((_, i) => i !== index);
-            const allOtherObjects = [...basketPositions, ...bumperPositions, ...otherFlippers];
+            const allOtherObjects = [...basketPositions, ...bumperPositions, ...otherFlippers, ...trianglePositions];
 
             // Check if new position is valid
             if (PositionManager.isValidPosition(dragX, dragY, allOtherObjects, PositionManager.MIN_DISTANCE)) {
                 flipper.x = dragX;
                 flipper.y = dragY;
-                flipper.body.updateFromGameObject();
+                this.matter.body.setPosition(flipper.body, { x: dragX, y: dragY });
                 lastValidX = dragX;
                 lastValidY = dragY;
 
@@ -325,30 +388,54 @@ class ClickerGame extends Phaser.Scene {
                 // Snap back to last valid position
                 flipper.x = lastValidX;
                 flipper.y = lastValidY;
-                flipper.body.updateFromGameObject();
+                this.matter.body.setPosition(flipper.body, { x: lastValidX, y: lastValidY });
             }
         });
 
         flipper.on('dragend', () => {
+            // CRITICAL: Stop processing if game is over
+            if (this.isGameOver) return;
+
             // Only animate if we actually dragged
             if (isDragging) {
                 const trueAngle = flipper.baseAngle;
                 const wobbleOffset = flipper.facingLeft ? 10 : -10;
 
                 // Simple angle-only animation - use baseAngle
+                // Create a custom tween object to animate rotation (in radians)
+                const startRotation = flipper.rotation;
+                const wobbleRotation = Phaser.Math.DegToRad(trueAngle + wobbleOffset);
+                const endRotation = Phaser.Math.DegToRad(trueAngle);
+
                 this.tweens.add({
-                    targets: flipper,
-                    angle: trueAngle + wobbleOffset,
+                    targets: { value: startRotation },
+                    value: wobbleRotation,
                     duration: 100,
                     ease: 'Back.easeOut',
+                    onUpdate: (tween) => {
+                        // CRITICAL: Check game over AND body exists
+                        if (this.isGameOver || !flipper.body) return;
+                        const currentValue = tween.getValue();
+                        flipper.setRotation(currentValue);
+                    },
                     onComplete: () => {
+                        // CRITICAL: Check game over BEFORE creating nested tween
+                        if (this.isGameOver || !flipper.body) return;
                         this.tweens.add({
-                            targets: flipper,
-                            angle: trueAngle,
+                            targets: { value: wobbleRotation },
+                            value: endRotation,
                             duration: 100,
                             ease: 'Back.easeOut',
+                            onUpdate: (tween) => {
+                                // CRITICAL: Check game over AND body exists
+                                if (this.isGameOver || !flipper.body) return;
+                                const currentValue = tween.getValue();
+                                flipper.setRotation(currentValue);
+                            },
                             onComplete: () => {
-                                flipper.setAngle(trueAngle);
+                                // CRITICAL: Check game over AND body exists
+                                if (this.isGameOver || !flipper.body) return;
+                                flipper.setRotation(endRotation);
                             }
                         });
                     }
@@ -366,12 +453,17 @@ class ClickerGame extends Phaser.Scene {
 
         // Track when drag actually starts
         triangle.on('dragstart', () => {
+            // CRITICAL: Stop processing if game is over
+            if (this.isGameOver) return;
             isDragging = true;
             lastValidX = triangle.x;
             lastValidY = triangle.y;
         });
 
         triangle.on('drag', (pointer, dragX, dragY) => {
+            // CRITICAL: Stop processing if game is over
+            if (this.isGameOver || !triangle.body) return;
+
             const basketPositions = this.registry.get('baskets');
             const bumperPositions = this.registry.get('bumpers');
             const flipperPositions = this.registry.get('flippers');
@@ -386,9 +478,7 @@ class ClickerGame extends Phaser.Scene {
             if (PositionManager.isValidPosition(dragX, dragY, allOtherObjects, PositionManager.MIN_DISTANCE)) {
                 triangle.x = dragX;
                 triangle.y = dragY;
-                triangle.body.x = dragX - 60;
-                triangle.body.y = dragY - 60;
-                triangle.body.updateFromGameObject();
+                this.matter.body.setPosition(triangle.body, { x: dragX, y: dragY });
                 lastValidX = dragX;
                 lastValidY = dragY;
 
@@ -401,13 +491,14 @@ class ClickerGame extends Phaser.Scene {
                 // Snap back to last valid position
                 triangle.x = lastValidX;
                 triangle.y = lastValidY;
-                triangle.body.x = lastValidX - 60;
-                triangle.body.y = lastValidY - 60;
-                triangle.body.updateFromGameObject();
+                this.matter.body.setPosition(triangle.body, { x: lastValidX, y: lastValidY });
             }
         });
 
         triangle.on('dragend', () => {
+            // CRITICAL: Stop processing if game is over
+            if (this.isGameOver) return;
+
             // Only create particles if we actually dragged
             if (isDragging) {
                 GameUtils.createParticleEffect(this, triangle.x, triangle.y, 0xFF8C42, 4);
@@ -466,40 +557,63 @@ class ClickerGame extends Phaser.Scene {
         this.selectedTriangle = null;
     }
 
-    setupPhysics() {}
+    setupPhysics() {
+        // Matter Physics uses global collision events
+        // Store reference so we can properly remove it later
+        this.collisionHandler = (event) => {
+            // CRITICAL: Stop processing collisions if game is over
+            if (this.isGameOver) return;
+
+            // CRITICAL: Wrap entire collision handling in try-catch
+            try {
+                event.pairs.forEach(pair => {
+                    const { bodyA, bodyB } = pair;
+
+                    // Safety check: bodies must exist
+                    if (!bodyA || !bodyB) return;
+
+                    // Get game objects from bodies
+                    const gameObjectA = bodyA.gameObject;
+                    const gameObjectB = bodyB.gameObject;
+
+                    if (!gameObjectA || !gameObjectB) return;
+
+                    // Check for skull collisions
+                    const skull = gameObjectA.skull || gameObjectB.skull;
+                    const other = skull === gameObjectA.skull ? gameObjectB : gameObjectA;
+
+                    if (skull) {
+                        // Skull hit basket (sensor collision)
+                        if (other.basket) {
+                            this.handleBasketCollection(skull.sprite, other);
+                        }
+                        // Skull hit bumper
+                        else if (other.bumper) {
+                            this.handleBumperCollision(skull.sprite, other);
+                        }
+                        // Skull hit flipper
+                        else if (other.flipper) {
+                            this.handleFlipperCollision(skull.sprite, other);
+                        }
+                        // Skull hit triangle/square (no effect - just bounces)
+                        else if (other.triangle) {
+                            this.handleTriangleCollision(skull.sprite, other);
+                        }
+                    }
+                });
+            } catch (e) {
+                // Silently ignore collision errors during cleanup
+                // This prevents crashes when bodies are being destroyed
+            }
+        };
+
+        // Register the collision handler
+        this.matter.world.on('collisionstart', this.collisionHandler);
+    }
 
     setupCollisionForSkull(skull) {
-        if (this.basketSprites.length > 0) {
-            this.basketSprites.forEach(basket => {
-                this.physics.add.overlap(skull.sprite, basket, (skullSprite, basket) => {
-                    this.handleBasketCollection(skullSprite, basket);
-                });
-            });
-        }
-
-        if (this.bumperSprites.length > 0) {
-            this.bumperSprites.forEach(bumper => {
-                this.physics.add.collider(skull.sprite, bumper, (skullSprite, bumper) => {
-                    this.handleBumperCollision(skullSprite, bumper);
-                });
-            });
-        }
-
-        if (this.flipperSprites.length > 0) {
-            this.flipperSprites.forEach(flipper => {
-                this.physics.add.collider(skull.sprite, flipper, (skullSprite, flipper) => {
-                    this.handleFlipperCollision(skullSprite, flipper);
-                });
-            });
-        }
-
-        if (this.triangleSprites.length > 0) {
-            this.triangleSprites.forEach(triangle => {
-                this.physics.add.collider(skull.sprite, triangle, (skullSprite, triangle) => {
-                    this.handleTriangleCollision(skullSprite, triangle);
-                });
-            });
-        }
+        // In Matter Physics, collisions are handled globally in setupPhysics()
+        // This function is kept for compatibility but does nothing
     }
 
     setupInput() {
@@ -605,7 +719,10 @@ class ClickerGame extends Phaser.Scene {
 
     spawnInitialSkulls() {
         for (let i = 0; i < this.maxSkulls; i++) {
-            this.spawnSkull();
+            // Stagger spawn timing slightly so they don't all clump together
+            this.time.delayedCall(i * 100, () => {
+                this.spawnSkull();
+            });
         }
     }
 
@@ -617,8 +734,10 @@ class ClickerGame extends Phaser.Scene {
     }
 
     spawnSkull(isBig = false) {
-        const x = Phaser.Math.Between(128, 896);
-        const y = Phaser.Math.Between(0, -400);
+        // Spawn across the width of the play area
+        const x = Phaser.Math.Between(100, GAME_CONFIG.PLAY_AREA_WIDTH - 100);
+        // Spawn above the screen (all negative Y values)
+        const y = Phaser.Math.Between(-100, -400);
         const value = isBig ? 10 : 1;
 
         const skull = new Skull(this, x, y, value, isBig);
@@ -628,6 +747,9 @@ class ClickerGame extends Phaser.Scene {
     }
 
     handleSkullClick(sprite) {
+        // CRITICAL: Check if sprite still exists
+        if (!sprite || !sprite.body) return;
+
         const skullObj = this.skullObjects.find(c => c.sprite === sprite);
         if (!skullObj || !skullObj.collect()) return;
 
@@ -642,6 +764,9 @@ class ClickerGame extends Phaser.Scene {
     }
 
     handleBasketCollection(skullSprite, basket) {
+        // CRITICAL: Check if basket still exists
+        if (!basket || !basket.body) return;
+
         const skullObj = this.skullObjects.find(c => c.sprite === skullSprite);
         if (!skullObj || !skullObj.collectInBasket(basket)) return;
 
@@ -656,6 +781,9 @@ class ClickerGame extends Phaser.Scene {
     }
 
     handleBumperCollision(skullSprite, bumper) {
+        // CRITICAL: Check if bumper still exists
+        if (!bumper || !bumper.body) return;
+
         const skullObj = this.skullObjects.find(c => c.sprite === skullSprite);
         if (!skullObj || !skullObj.canHitBumper(bumper)) return;
 
@@ -664,6 +792,9 @@ class ClickerGame extends Phaser.Scene {
     }
 
     handleFlipperCollision(skullSprite, flipper) {
+        // CRITICAL: Check if flipper still exists
+        if (!flipper || !flipper.body) return;
+
         const skullObj = this.skullObjects.find(c => c.sprite === skullSprite);
         if (!skullObj || !skullObj.canHitFlipper(flipper)) return;
 
@@ -688,11 +819,14 @@ class ClickerGame extends Phaser.Scene {
     }
 
     clickBasket(basket) {
+        // CRITICAL: Don't process if game is over or basket is destroyed
+        if (this.isGameOver || !basket || !basket.body) return;
+
         const bonusSkulls = 5;
         this.addScore(bonusSkulls);
         this.showBasketBonusText(basket.x, basket.y - 30, bonusSkulls);
         this.updateScoreDisplay();
-        
+
         this.tweens.add({
             targets: basket,
             scaleX: 1.2,
@@ -761,6 +895,9 @@ class ClickerGame extends Phaser.Scene {
     }
 
     showBumperEffect(bumper) {
+        // CRITICAL: Don't process if game is over or bumper is destroyed
+        if (this.isGameOver || !bumper || !bumper.body) return;
+
         this.tweens.add({
             targets: bumper,
             scaleX: 1.3,
@@ -790,6 +927,9 @@ class ClickerGame extends Phaser.Scene {
     }
 
     showFlipperEffect(flipper) {
+        // CRITICAL: Don't process if game is over or flipper is destroyed
+        if (this.isGameOver || !flipper || !flipper.body) return;
+
         // Use base angle to prevent drift
         const trueAngle = flipper.baseAngle;
         const swingOffset = flipper.facingLeft ? -20 : 20;
@@ -800,13 +940,16 @@ class ClickerGame extends Phaser.Scene {
             duration: 100,
             ease: 'Back.easeOut',
             onComplete: () => {
+                // CRITICAL: Check game over BEFORE creating nested tween
+                if (this.isGameOver || !flipper || !flipper.body) return;
                 this.tweens.add({
                     targets: flipper,
                     angle: trueAngle,
                     duration: 200,
                     ease: 'Bounce.easeOut',
                     onComplete: () => {
-                        // Ensure exact return to base angle
+                        // CRITICAL: Check game over AND body exists before setting angle
+                        if (this.isGameOver || !flipper || !flipper.body) return;
                         flipper.setAngle(trueAngle);
                     }
                 });
@@ -840,16 +983,47 @@ class ClickerGame extends Phaser.Scene {
     }
 
     update() {
+        // CRITICAL: Stop ALL updates if game is over
+        if (this.isGameOver) return;
         if (!this.timer) return;
 
-        this.timeText.setText(`Time: ${Math.ceil(this.timer.getRemainingSeconds())}`);
+        // Wrap entire update in try-catch to catch any remaining issues
+        try {
+            this.timeText.setText(`Time: ${Math.ceil(this.timer.getRemainingSeconds())}`);
 
-        this.skullObjects.forEach(skull => {
-            skull.updateValueText();
-            skull.update();
+            // Check for out-of-bounds skulls and clean them up
+            const skullsToRemove = [];
+            this.skullObjects.forEach(skull => {
+            if (!skull || !skull.sprite) {
+                skullsToRemove.push(skull);
+                return;
+            }
+
+            // Check if skull is out of bounds
+            const isOutOfBounds =
+                skull.sprite.x < -100 ||
+                skull.sprite.x > GAME_CONFIG.PLAY_AREA_WIDTH + 100 ||
+                skull.sprite.y > GAME_CONFIG.WORLD_HEIGHT + 200;
+
+            if (isOutOfBounds) {
+                // Let skull.destroy() handle body removal safely (no duplicate removal)
+                skull.destroy();
+                skullsToRemove.push(skull);
+            } else {
+                skull.updateValueText();
+                skull.update();
+            }
         });
 
-        if (!this.bigSkullSpawned && this.timer.getRemainingSeconds() <= 5) {
+        // Remove destroyed skulls from array
+        skullsToRemove.forEach(skull => {
+            const index = this.skullObjects.indexOf(skull);
+            if (index > -1) {
+                this.skullObjects.splice(index, 1);
+            }
+        });
+
+        if (!this.bigSkullSpawned && this.timer.getRemainingSeconds() <= this.gameTime / 2) {
             this.spawnSkull(true);
             this.bigSkullSpawned = true;
         }
@@ -866,6 +1040,9 @@ class ClickerGame extends Phaser.Scene {
 
         // Safety check: ensure flippers maintain correct scale and angle when not tweening
         this.flipperSprites.forEach(flipper => {
+            // CRITICAL: Skip if flipper or body is destroyed/missing
+            if (!flipper || !flipper.body) return;
+
             if (!this.tweens.isTweening(flipper)) {
                 if (flipper.baseScaleX !== undefined &&
                     (flipper.scaleX !== flipper.baseScaleX || flipper.scaleY !== 1)) {
@@ -879,33 +1056,160 @@ class ClickerGame extends Phaser.Scene {
 
         // Safety check: ensure triangles maintain correct angle when not tweening
         this.triangleSprites.forEach(triangle => {
+            // CRITICAL: Skip if triangle or body is destroyed/missing
+            if (!triangle || !triangle.body) return;
+
             if (!this.tweens.isTweening(triangle)) {
                 if (triangle.baseAngle !== undefined && triangle.angle !== triangle.baseAngle) {
                     triangle.setAngle(triangle.baseAngle);
                 }
             }
         });
+
+        } catch (e) {
+            // Silently ignore any errors during update - prevents crashes during cleanup
+            console.error('Update error:', e);
+        }
     }
 
     gameOver() {
-        this.skullObjects.forEach(skull => {
-            skull.sprite.setVelocity(0, 0);
-            if (!skull.isBig) skull.sprite.play('vanish');
-            skull.destroy();
-        });
-        this.skullObjects = [];
+        // Prevent multiple calls
+        if (this.isGameOver) return;
+        this.isGameOver = true;
 
-        this.input.off('gameobjectdown');
-
+        // Save high score first
         const currentBest = this.registry.get('highscore');
         if (this.roundScore > currentBest) {
             this.registry.set('highscore', this.roundScore);
         }
 
-        this.time.delayedCall(2000, () => this.scene.start('GameOver'));
+        // CRITICAL: Disable input FIRST to prevent new events from queuing
+        this.input.enabled = false;
+
+        // CRITICAL: Remove ALL timer events to prevent delayed spawns
+        if (this.time) {
+            this.time.removeAllEvents();
+        }
+
+        // CRITICAL: Remove scene-level input event listeners
+        this.input.off('gameobjectdown');
+        this.input.off('pointerdown');
+
+        // CRITICAL: Remove ALL game object event listeners before destroying
+        this.basketSprites.forEach(basket => {
+            if (basket) {
+                basket.off('pointerdown');
+                basket.off('drag');
+                basket.off('dragend');
+            }
+        });
+
+        this.bumperSprites.forEach(bumper => {
+            if (bumper) {
+                bumper.off('drag');
+                bumper.off('dragend');
+                // CRITICAL: Stop infinite idle animation tween
+                this.tweens.getTweensOf(bumper).forEach(tween => tween.remove());
+            }
+        });
+
+        this.flipperSprites.forEach(flipper => {
+            if (flipper) {
+                flipper.off('dragstart');
+                flipper.off('drag');
+                flipper.off('dragend');
+                // CRITICAL: Stop any running tweens on flipper
+                this.tweens.getTweensOf(flipper).forEach(tween => tween.remove());
+            }
+        });
+
+        this.triangleSprites.forEach(triangle => {
+            if (triangle) {
+                triangle.off('dragstart');
+                triangle.off('drag');
+                triangle.off('dragend');
+                // CRITICAL: Stop any running tweens on triangle
+                this.tweens.getTweensOf(triangle).forEach(tween => tween.remove());
+            }
+        });
+
+        // Kill all tweens AFTER removing event listeners
+        if (this.tweens) {
+            this.tweens.killAll();
+        }
+
+        // CRITICAL: Disable Matter physics FIRST to stop all updates
+        if (this.matter && this.matter.world) {
+            this.matter.world.enabled = false;
+            if (this.matter.world.engine) {
+                this.matter.world.engine.enabled = false;
+            }
+        }
+
+        // CRITICAL: THEN stop collision detection using stored handler reference
+        if (this.matter && this.matter.world && this.collisionHandler) {
+            try {
+                this.matter.world.off('collisionstart', this.collisionHandler);
+                this.collisionHandler = null;
+            } catch (e) {}
+        }
+
+        // CRITICAL: Remove all Matter bodies from world BEFORE scene transition
+        // Do this manually to prevent Phaser from trying to access destroyed bodies
+        try {
+            this.skullObjects.forEach(skull => {
+                if (skull && skull.sprite && skull.sprite.body) {
+                    try {
+                        this.matter.world.remove(skull.sprite.body);
+                    } catch (e) {}
+                }
+            });
+        } catch (e) {}
+
+        // Clear object arrays (let Phaser destroy the actual sprites during scene shutdown)
+        this.skullObjects = [];
+        this.basketSprites = [];
+        this.bumperSprites = [];
+        this.flipperSprites = [];
+        this.triangleSprites = [];
+
+        // Transition immediately - Phaser will call shutdown() which cleans up everything
+        this.scene.start('GameOver');
     }
 
     shutdown() {
+        // Set game over flag to stop update loop
+        this.isGameOver = true;
+
+        // Disable input
+        if (this.input) {
+            this.input.enabled = false;
+        }
+
+        // Stop collision detection using stored handler reference
+        if (this.matter && this.matter.world && this.collisionHandler) {
+            try {
+                this.matter.world.off('collisionstart', this.collisionHandler);
+                this.collisionHandler = null;
+            } catch (e) {
+                // Ignore errors
+            }
+        }
+
+        // CRITICAL: Disable Matter physics to prevent updates during destruction
+        if (this.matter && this.matter.world) {
+            this.matter.world.enabled = false;
+            if (this.matter.world.engine) {
+                this.matter.world.engine.enabled = false;
+            }
+        }
+
+        // Kill all tweens
+        if (this.tweens) {
+            this.tweens.killAll();
+        }
+
+        // Clean up manipulators (they don't touch physics bodies)
         if (this.flipperManipulator) {
             this.flipperManipulator.destroy();
             this.flipperManipulator = null;
@@ -914,6 +1218,8 @@ class ClickerGame extends Phaser.Scene {
             this.triangleManipulator.destroy();
             this.triangleManipulator = null;
         }
+
+        // Just clear array references, let Phaser destroy the actual objects
         this.skullObjects = [];
         this.basketSprites = [];
         this.bumperSprites = [];

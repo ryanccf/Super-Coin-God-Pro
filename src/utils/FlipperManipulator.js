@@ -48,29 +48,35 @@ class FlipperManipulator {
     setupHandlers() {
         // Rotation handle drag
         this.rotationHandle.on('drag', (pointer, dragX, dragY) => {
+            // CRITICAL: Stop processing if game is over or body doesn't exist
+            if (this.scene.isGameOver || !this.flipper.body) return;
+
             const angle = Phaser.Math.Angle.Between(
                 this.flipper.x,
                 this.flipper.y,
                 dragX,
                 dragY
             );
+
+            // setRotation updates both sprite and Matter body
             this.flipper.setRotation(angle);
-            const angleDeg = Phaser.Math.RadToDeg(angle);
-            this.flipper.setAngle(angleDeg);
-            this.flipper.baseAngle = angleDeg; // Update base angle
+            this.flipper.baseAngle = Phaser.Math.RadToDeg(angle); // Update base angle
+
             this.updateUI();
 
             // Update saved position angle
             const flipperPositions = this.scene.registry.get('flippers');
             const index = this.scene.flipperSprites.indexOf(this.flipper);
             if (index !== -1 && flipperPositions[index]) {
-                flipperPositions[index].angle = angleDeg;
+                flipperPositions[index].angle = this.flipper.baseAngle;
                 this.scene.registry.set('flippers', flipperPositions);
             }
         });
 
         // Flip button click
         this.flipButton.on('pointerdown', (pointer) => {
+            // CRITICAL: Stop processing if game is over
+            if (this.scene.isGameOver) return;
             pointer.event.stopPropagation();
             this.flipFlipper();
         });
@@ -82,8 +88,8 @@ class FlipperManipulator {
     }
 
     flipFlipper() {
-        // Mirror horizontally
-        this.flipper.scaleX *= -1;
+        // Mirror horizontally - setScale updates both sprite and Matter body
+        this.flipper.setScale(this.flipper.scaleX * -1, 1);
         this.flipper.baseScaleX = this.flipper.scaleX; // Update base scale
 
         // Toggle facingLeft property
@@ -122,6 +128,9 @@ class FlipperManipulator {
 
     updateUI() {
         if (!this.isActive) return;
+
+        // CRITICAL: Stop if flipper or body is destroyed/missing
+        if (!this.flipper || !this.flipper.body) return;
 
         // Update outline position and rotation
         this.outline.clear();
@@ -303,10 +312,17 @@ class FlipperManipulator {
     }
 
     destroy() {
+        // CRITICAL: Remove event listeners BEFORE destroying objects
+        if (this.rotationHandle) {
+            this.rotationHandle.removeAllListeners();
+            this.rotationHandle.destroy();
+        }
+        if (this.flipButton) {
+            this.flipButton.removeAllListeners();
+            this.flipButton.destroy();
+        }
         if (this.outline) this.outline.destroy();
-        if (this.rotationHandle) this.rotationHandle.destroy();
         if (this.rotationIcon) this.rotationIcon.destroy();
-        if (this.flipButton) this.flipButton.destroy();
         if (this.flipIcon) this.flipIcon.destroy();
     }
 }

@@ -105,6 +105,11 @@ class MainMenu extends Phaser.Scene {
 
     setupInputHandlers() {
         this.input.on('pointerdown', (pointer, currentlyOver) => {
+            // Resume audio context on first user interaction
+            if (this.sound.context && this.sound.context.state === 'suspended') {
+                this.sound.context.resume();
+            }
+
             if (currentlyOver.length === 0) {
                 this.scene.start('ClickerGame');
             }

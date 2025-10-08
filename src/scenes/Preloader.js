@@ -8,16 +8,23 @@ class Preloader extends Phaser.Scene {
     }
 
     createLoadingScreen() {
-        this.add.rectangle(512, 384, 1024, 768, 0x028af8);
-        this.add.text(512, 384, 'Loading...', {
+        const centerX = GAME_CONFIG.WORLD_WIDTH / 2;
+        const centerY = GAME_CONFIG.WORLD_HEIGHT / 2;
+
+        // Create full screen blue background
+        const bg = this.add.graphics();
+        bg.fillStyle(0x028af8, 1);
+        bg.fillRect(0, 0, GAME_CONFIG.WORLD_WIDTH, GAME_CONFIG.WORLD_HEIGHT);
+
+        this.add.text(centerX, centerY, 'Loading...', {
             fontFamily: 'Arial Black',
             fontSize: 64,
             color: '#ffffff'
         }).setOrigin(0.5);
 
-        const progressBar = this.add.rectangle(512, 450, 468, 32);
+        const progressBar = this.add.rectangle(centerX, centerY + 66, 468, 32);
         progressBar.setStrokeStyle(2, 0xffffff);
-        const bar = this.add.rectangle(512-230, 450, 4, 28, 0xffffff);
+        const bar = this.add.rectangle(centerX - 230, centerY + 66, 4, 28, 0xffffff);
 
         this.load.on("progress", (progress) => {
             bar.width = 4 + (460 * progress);

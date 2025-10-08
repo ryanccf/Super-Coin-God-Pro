@@ -24,17 +24,6 @@ class GameUtils {
     }
 
     static addButtonEffect(button, text, callback) {
-        button.on('pointerover', () => button.setAlpha(0.8));
-        button.on('pointerout', () => button.setAlpha(1));
-        button.on('pointerdown', () => {
-            button.scene.tweens.add({
-                targets: [button, text],
-                scaleX: 0.95,
-                scaleY: 0.95,
-                duration: 100,
-                yoyo: true,
-                onComplete: callback
-            });
-        });
+        button.on('pointerdown', callback);
     }
 }

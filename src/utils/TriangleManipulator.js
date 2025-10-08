@@ -35,23 +35,27 @@ class TriangleManipulator {
     setupHandlers() {
         // Rotation handle drag
         this.rotationHandle.on('drag', (pointer, dragX, dragY) => {
+            // CRITICAL: Stop processing if game is over or body doesn't exist
+            if (this.scene.isGameOver || !this.triangle.body) return;
+
             const angle = Phaser.Math.Angle.Between(
                 this.triangle.x,
                 this.triangle.y,
                 dragX,
                 dragY
             );
+
+            // setRotation updates both sprite and Matter body
             this.triangle.setRotation(angle);
-            const angleDeg = Phaser.Math.RadToDeg(angle);
-            this.triangle.setAngle(angleDeg);
-            this.triangle.baseAngle = angleDeg; // Update base angle
+            this.triangle.baseAngle = Phaser.Math.RadToDeg(angle); // Update base angle
+
             this.updateUI();
 
             // Update saved position angle
             const trianglePositions = this.scene.registry.get('triangles');
             const index = this.scene.triangleSprites.indexOf(this.triangle);
             if (index !== -1 && trianglePositions[index]) {
-                trianglePositions[index].angle = angleDeg;
+                trianglePositions[index].angle = this.triangle.baseAngle;
                 this.scene.registry.set('triangles', trianglePositions);
             }
         });
@@ -79,6 +83,9 @@ class TriangleManipulator {
 
     updateUI() {
         if (!this.isActive) return;
+
+        // CRITICAL: Stop if triangle or body is destroyed/missing
+        if (!this.triangle || !this.triangle.body) return;
 
         // Update outline position and rotation
         this.outline.clear();
@@ -162,8 +169,12 @@ class TriangleManipulator {
     }
 
     destroy() {
+        // CRITICAL: Remove event listeners BEFORE destroying objects
+        if (this.rotationHandle) {
+            this.rotationHandle.removeAllListeners();
+            this.rotationHandle.destroy();
+        }
         if (this.outline) this.outline.destroy();
-        if (this.rotationHandle) this.rotationHandle.destroy();
         if (this.rotationIcon) this.rotationIcon.destroy();
     }
 }
