@@ -19,7 +19,9 @@ class Preloader extends Phaser.Scene {
         this.add.text(centerX, centerY, 'Loading...', {
             fontFamily: 'Arial Black',
             fontSize: 64,
-            color: '#ffffff'
+            color: '#000000',
+            stroke: '#ffffff',
+            strokeThickness: 6
         }).setOrigin(0.5);
 
         const progressBar = this.add.rectangle(centerX, centerY + 66, 468, 32);
@@ -41,6 +43,9 @@ class Preloader extends Phaser.Scene {
         AssetCreator.createTriangle(this);
         AssetCreator.createBigSkull(this);
         AssetCreator.createFloor(this);
+
+        // Load main menu background
+        this.load.image('main_menu_background', 'src/assets/images/backgrounds/main_menu.png');
 
         // Load unlockables
         UNLOCKABLES.forEach(name => {

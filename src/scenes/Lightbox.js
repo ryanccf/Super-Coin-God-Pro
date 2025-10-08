@@ -33,8 +33,8 @@ class Lightbox extends Phaser.Scene {
         this.add.text(centerX, 50, this.itemName, {
             fontFamily: 'Arial Black',
             fontSize: 48,
-            color: '#ffffff',
-            stroke: '#000000',
+            color: '#000000',
+            stroke: '#ffffff',
             strokeThickness: 6
         }).setOrigin(0.5);
 
@@ -42,8 +42,8 @@ class Lightbox extends Phaser.Scene {
         this.add.text(centerX, GAME_CONFIG.WORLD_HEIGHT - 50, 'Click anywhere to close', {
             fontFamily: 'Arial Black',
             fontSize: 24,
-            color: '#ffffff',
-            stroke: '#000000',
+            color: '#000000',
+            stroke: '#ffffff',
             strokeThickness: 3
         }).setOrigin(0.5);
     }

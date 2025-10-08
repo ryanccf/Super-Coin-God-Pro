@@ -67,8 +67,8 @@ class Altar extends Phaser.Scene {
                 const priceText = this.add.text(0, thumbnailSize/2 + 15, `${cost} Skulls`, {
                     fontFamily: 'Arial Black',
                     fontSize: 14,
-                    color: '#ffffff',
-                    stroke: '#000000',
+                    color: '#000000',
+                    stroke: '#ffffff',
                     strokeThickness: 2
                 }).setOrigin(0.5);
                 container.add(priceText);
@@ -149,8 +149,8 @@ class Altar extends Phaser.Scene {
         const buttonText = this.add.text(centerX, buttonY, `PRAY (${cost} Skulls)`, {
             fontFamily: 'Arial Black',
             fontSize: 24,
-            color: '#ffffff',
-            stroke: '#000000',
+            color: '#000000',
+            stroke: '#ffffff',
             strokeThickness: 3
         }).setOrigin(0.5);
 
@@ -183,8 +183,8 @@ class Altar extends Phaser.Scene {
         const buttonText = this.add.text(centerX, buttonY, 'BACK', {
             fontFamily: 'Arial Black',
             fontSize: 20,
-            color: '#ffffff',
-            stroke: '#000000',
+            color: '#000000',
+            stroke: '#ffffff',
             strokeThickness: 2
         }).setOrigin(0.5);
 

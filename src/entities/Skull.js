@@ -34,8 +34,8 @@ class Skull {
         this.valueText = scene.add.text(x, y, value.toString(), {
             fontFamily: 'Arial Black',
             fontSize: isBig ? 20 : 16,
-            color: '#ffffff',
-            stroke: '#000000',
+            color: '#000000',
+            stroke: '#ffffff',
             strokeThickness: isBig ? 3 : 2,
             fixedWidth: 0
         }).setOrigin(0.5).setDepth(10);

@@ -88,8 +88,8 @@ class ClickerGame extends Phaser.Scene {
         const textStyle = {
             fontFamily: 'Arial Black',
             fontSize: 32,
-            color: '#ffffff',
-            stroke: '#000000',
+            color: '#000000',
+            stroke: '#ffffff',
             strokeThickness: 4
         };
 
@@ -98,8 +98,8 @@ class ClickerGame extends Phaser.Scene {
         this.maxSkullsText = this.add.text(sidebarX, 220, `Max: ${this.maxSkulls}`, {
             fontFamily: 'Arial Black',
             fontSize: 28,
-            color: '#ffffff',
-            stroke: '#000000',
+            color: '#000000',
+            stroke: '#ffffff',
             strokeThickness: 4
         }).setDepth(1);
         this.timeText = this.add.text(sidebarX, 40, `Time: ${this.gameTime}`, textStyle).setDepth(1);
@@ -142,30 +142,17 @@ class ClickerGame extends Phaser.Scene {
             if (this.isGameOver || !basket.body) return;
 
             const basketPositions = this.registry.get('baskets');
-            const bumperPositions = this.registry.get('bumpers');
-            const flipperPositions = this.registry.get('flippers');
-            const trianglePositions = this.registry.get('triangles');
             const index = this.basketSprites.indexOf(basket);
 
-            // Create temporary position array without current basket
-            const otherBaskets = basketPositions.filter((_, i) => i !== index);
-            const allOtherObjects = [...otherBaskets, ...bumperPositions, ...flipperPositions, ...trianglePositions];
+            // Allow any position - no overlap checking
+            basket.x = dragX;
+            basket.y = originalPos.y;
+            this.matter.body.setPosition(basket.body, { x: dragX, y: originalPos.y });
+            lastValidX = dragX;
 
-            // Check if new position is valid
-            if (PositionManager.isValidPosition(dragX, originalPos.y, allOtherObjects, PositionManager.MIN_DISTANCE)) {
-                basket.x = dragX;
-                basket.y = originalPos.y;
-                this.matter.body.setPosition(basket.body, { x: dragX, y: originalPos.y });
-                lastValidX = dragX;
-
-                if (index !== -1 && basketPositions[index]) {
-                    basketPositions[index].x = dragX;
-                    this.registry.set('baskets', basketPositions);
-                }
-            } else {
-                // Snap back to last valid position
-                basket.x = lastValidX;
-                this.matter.body.setPosition(basket.body, { x: lastValidX, y: originalPos.y });
+            if (index !== -1 && basketPositions[index]) {
+                basketPositions[index].x = dragX;
+                this.registry.set('baskets', basketPositions);
             }
         });
 
@@ -215,34 +202,20 @@ class ClickerGame extends Phaser.Scene {
             // CRITICAL: Stop processing if game is over
             if (this.isGameOver || !bumper.body) return;
 
-            const basketPositions = this.registry.get('baskets');
             const bumperPositions = this.registry.get('bumpers');
-            const flipperPositions = this.registry.get('flippers');
-            const trianglePositions = this.registry.get('triangles');
             const index = this.bumperSprites.indexOf(bumper);
 
-            // Create temporary position array without current bumper
-            const otherBumpers = bumperPositions.filter((_, i) => i !== index);
-            const allOtherObjects = [...basketPositions, ...otherBumpers, ...flipperPositions, ...trianglePositions];
+            // Allow any position - no overlap checking
+            bumper.x = dragX;
+            bumper.y = dragY;
+            this.matter.body.setPosition(bumper.body, { x: dragX, y: dragY });
+            lastValidX = dragX;
+            lastValidY = dragY;
 
-            // Check if new position is valid
-            if (PositionManager.isValidPosition(dragX, dragY, allOtherObjects, PositionManager.MIN_DISTANCE)) {
-                bumper.x = dragX;
-                bumper.y = dragY;
-                this.matter.body.setPosition(bumper.body, { x: dragX, y: dragY });
-                lastValidX = dragX;
-                lastValidY = dragY;
-
-                if (index !== -1 && bumperPositions[index]) {
-                    bumperPositions[index].x = dragX;
-                    bumperPositions[index].y = dragY;
-                    this.registry.set('bumpers', bumperPositions);
-                }
-            } else {
-                // Snap back to last valid position
-                bumper.x = lastValidX;
-                bumper.y = lastValidY;
-                this.matter.body.setPosition(bumper.body, { x: lastValidX, y: lastValidY });
+            if (index !== -1 && bumperPositions[index]) {
+                bumperPositions[index].x = dragX;
+                bumperPositions[index].y = dragY;
+                this.registry.set('bumpers', bumperPositions);
             }
         });
 
@@ -361,34 +334,20 @@ class ClickerGame extends Phaser.Scene {
             // CRITICAL: Stop processing if game is over
             if (this.isGameOver || !flipper.body) return;
 
-            const basketPositions = this.registry.get('baskets');
-            const bumperPositions = this.registry.get('bumpers');
             const flipperPositions = this.registry.get('flippers');
-            const trianglePositions = this.registry.get('triangles');
             const index = this.flipperSprites.indexOf(flipper);
 
-            // Create temporary position array without current flipper
-            const otherFlippers = flipperPositions.filter((_, i) => i !== index);
-            const allOtherObjects = [...basketPositions, ...bumperPositions, ...otherFlippers, ...trianglePositions];
+            // Allow any position - no overlap checking
+            flipper.x = dragX;
+            flipper.y = dragY;
+            this.matter.body.setPosition(flipper.body, { x: dragX, y: dragY });
+            lastValidX = dragX;
+            lastValidY = dragY;
 
-            // Check if new position is valid
-            if (PositionManager.isValidPosition(dragX, dragY, allOtherObjects, PositionManager.MIN_DISTANCE)) {
-                flipper.x = dragX;
-                flipper.y = dragY;
-                this.matter.body.setPosition(flipper.body, { x: dragX, y: dragY });
-                lastValidX = dragX;
-                lastValidY = dragY;
-
-                if (index !== -1 && flipperPositions[index]) {
-                    flipperPositions[index].x = dragX;
-                    flipperPositions[index].y = dragY;
-                    this.registry.set('flippers', flipperPositions);
-                }
-            } else {
-                // Snap back to last valid position
-                flipper.x = lastValidX;
-                flipper.y = lastValidY;
-                this.matter.body.setPosition(flipper.body, { x: lastValidX, y: lastValidY });
+            if (index !== -1 && flipperPositions[index]) {
+                flipperPositions[index].x = dragX;
+                flipperPositions[index].y = dragY;
+                this.registry.set('flippers', flipperPositions);
             }
         });
 
@@ -464,34 +423,20 @@ class ClickerGame extends Phaser.Scene {
             // CRITICAL: Stop processing if game is over
             if (this.isGameOver || !triangle.body) return;
 
-            const basketPositions = this.registry.get('baskets');
-            const bumperPositions = this.registry.get('bumpers');
-            const flipperPositions = this.registry.get('flippers');
             const trianglePositions = this.registry.get('triangles');
             const index = this.triangleSprites.indexOf(triangle);
 
-            // Create temporary position array without current triangle
-            const otherTriangles = trianglePositions.filter((_, i) => i !== index);
-            const allOtherObjects = [...basketPositions, ...bumperPositions, ...flipperPositions, ...otherTriangles];
+            // Allow any position - no overlap checking
+            triangle.x = dragX;
+            triangle.y = dragY;
+            this.matter.body.setPosition(triangle.body, { x: dragX, y: dragY });
+            lastValidX = dragX;
+            lastValidY = dragY;
 
-            // Check if new position is valid
-            if (PositionManager.isValidPosition(dragX, dragY, allOtherObjects, PositionManager.MIN_DISTANCE)) {
-                triangle.x = dragX;
-                triangle.y = dragY;
-                this.matter.body.setPosition(triangle.body, { x: dragX, y: dragY });
-                lastValidX = dragX;
-                lastValidY = dragY;
-
-                if (index !== -1 && trianglePositions[index]) {
-                    trianglePositions[index].x = dragX;
-                    trianglePositions[index].y = dragY;
-                    this.registry.set('triangles', trianglePositions);
-                }
-            } else {
-                // Snap back to last valid position
-                triangle.x = lastValidX;
-                triangle.y = lastValidY;
-                this.matter.body.setPosition(triangle.body, { x: lastValidX, y: lastValidY });
+            if (index !== -1 && trianglePositions[index]) {
+                trianglePositions[index].x = dragX;
+                trianglePositions[index].y = dragY;
+                this.registry.set('triangles', trianglePositions);
             }
         });
 
@@ -860,8 +805,8 @@ class ClickerGame extends Phaser.Scene {
         const bonusText = this.add.text(x, y - 30, `+${value}!`, {
             fontFamily: 'Arial Black',
             fontSize: value > 10 ? 36 : 24,
-            color: '#ffffff',
-            stroke: '#000000',
+            color: '#000000',
+            stroke: '#ffffff',
             strokeThickness: value > 10 ? 4 : 2
         }).setOrigin(0.5);
 
@@ -880,8 +825,8 @@ class ClickerGame extends Phaser.Scene {
         const bonusText = this.add.text(x, y - 40, `+${value}!`, {
             fontFamily: 'Arial Black',
             fontSize: 20,
-            color: '#ffffff',
-            stroke: '#000000',
+            color: '#000000',
+            stroke: '#ffffff',
             strokeThickness: 2
         }).setOrigin(0.5);
 
@@ -912,8 +857,8 @@ class ClickerGame extends Phaser.Scene {
         const bonusText = this.add.text(bumper.x, bumper.y - 30, '2x!', {
             fontFamily: 'Arial Black',
             fontSize: 20,
-            color: '#ffffff',
-            stroke: '#000000',
+            color: '#000000',
+            stroke: '#ffffff',
             strokeThickness: 2
         }).setOrigin(0.5);
 
@@ -961,8 +906,8 @@ class ClickerGame extends Phaser.Scene {
         const flipText = this.add.text(flipper.x, flipper.y + 20, 'FLIP!', {
             fontFamily: 'Arial Black',
             fontSize: 18,
-            color: '#ffffff',
-            stroke: '#000000',
+            color: '#000000',
+            stroke: '#ffffff',
             strokeThickness: 2
         }).setOrigin(0.5);
 

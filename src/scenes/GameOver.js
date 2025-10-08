@@ -22,8 +22,8 @@ class GameOver extends Phaser.Scene {
         this.add.text(centerX, 384, message, {
             fontFamily: 'Arial Black',
             fontSize: 36,
-            color: '#ffffff',
-            stroke: '#000000',
+            color: '#000000',
+            stroke: '#ffffff',
             strokeThickness: 8,
             align: 'center'
         }).setOrigin(0.5);

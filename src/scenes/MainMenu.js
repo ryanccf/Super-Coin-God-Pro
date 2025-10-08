@@ -10,7 +10,12 @@ class MainMenu extends Phaser.Scene {
     }
 
     setupBackground() {
-        this.add.image(GAME_CONFIG.WORLD_WIDTH / 2, 384, 'background');
+        const bg = this.add.image(GAME_CONFIG.WORLD_WIDTH / 2, GAME_CONFIG.WORLD_HEIGHT / 2, 'main_menu_background');
+        // Scale to cover the entire screen
+        const scaleX = GAME_CONFIG.WORLD_WIDTH / bg.width;
+        const scaleY = GAME_CONFIG.WORLD_HEIGHT / bg.height;
+        const scale = Math.max(scaleX, scaleY);
+        bg.setScale(scale);
     }
 
     createUI() {
@@ -21,8 +26,8 @@ class MainMenu extends Phaser.Scene {
         const textStyle = {
             fontFamily: 'Arial Black',
             fontSize: 38,
-            color: '#ffffff',
-            stroke: '#000000',
+            color: '#000000',
+            stroke: '#ffffff',
             strokeThickness: 4
         };
 
@@ -44,11 +49,13 @@ class MainMenu extends Phaser.Scene {
             "SKULLS FOR THE SKULL GOD!"
         ];
 
-        const instructionText = this.add.text(centerX, 400, instructions, {
+        // Position text in the center of the right third of the screen
+        const rightThirdCenterX = GAME_CONFIG.WORLD_WIDTH * (5/6);
+        const instructionText = this.add.text(rightThirdCenterX, 400, instructions, {
             fontFamily: 'Arial Black',
             fontSize: 28,
-            color: '#ffffff',
-            stroke: '#000000',
+            color: '#000000',
+            stroke: '#ffffff',
             strokeThickness: 3,
             align: 'center'
         }).setOrigin(0.5);
@@ -72,8 +79,8 @@ class MainMenu extends Phaser.Scene {
         const buttonText = this.add.text(x, y, text, {
             fontFamily: 'Arial Black',
             fontSize: 28,
-            color: '#ffffff',
-            stroke: '#000000',
+            color: '#000000',
+            stroke: '#ffffff',
             strokeThickness: 3
         }).setOrigin(0.5);
 
