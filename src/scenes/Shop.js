@@ -47,21 +47,29 @@ class Shop extends Phaser.Scene {
 
     createUpgradeButtons() {
         const centerX = GAME_CONFIG.WORLD_WIDTH / 2;
-        const upgrades = this.getUpgradeData();
+        const upgradeColumns = this.getUpgradeData();
+        const startY = 240;
+        const buttonSpacing = 95;
 
-        upgrades.forEach((upgrade, index) => {
-            // 2 buttons left, 4 buttons right layout
-            let x, y;
-            if (index < 2) {
-                // Left column (2 buttons)
-                x = centerX - 302;
-                y = 240 + index * 95;
-            } else {
-                // Right column (4 buttons)
-                x = centerX + 302;
-                y = 240 + (index - 2) * 95;
-            }
-            this.createUpgradeButton(x, y, upgrade);
+        // Left column
+        const leftX = centerX - 342;
+        upgradeColumns.left.forEach((upgrade, index) => {
+            const y = startY + index * buttonSpacing;
+            this.createUpgradeButton(leftX, y, upgrade);
+        });
+
+        // Center column
+        const centerColX = centerX;
+        upgradeColumns.center.forEach((upgrade, index) => {
+            const y = startY + index * buttonSpacing;
+            this.createUpgradeButton(centerColX, y, upgrade);
+        });
+
+        // Right column
+        const rightX = centerX + 342;
+        upgradeColumns.right.forEach((upgrade, index) => {
+            const y = startY + index * buttonSpacing;
+            this.createUpgradeButton(rightX, y, upgrade);
         });
     }
 
@@ -73,62 +81,94 @@ class Shop extends Phaser.Scene {
         const bumperLevel = this.registry.get('bumperLevel');
         const flipperLevel = this.registry.get('flipperLevel');
         const triangleLevel = this.registry.get('triangleLevel');
+        const autoStartUnlocked = this.registry.get('autoStartUnlocked');
+        const autoStartLevel = this.registry.get('autoStartLevel');
 
         const baskets = this.registry.get('baskets');
         const bumpers = this.registry.get('bumpers');
         const flippers = this.registry.get('flippers');
         const triangles = this.registry.get('triangles');
 
-        return [
-            {
-                name: 'Max Skulls +1',
-                cost: GameUtils.calculateUpgradeCost(10, upgradeLevel, 1.6),
-                canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(10, upgradeLevel, 1.6),
-                canPurchase: true,
-                color: 0x2F7F4F,  // Dark green
-                action: () => this.buySkullUpgrade()
-            },
-            {
-                name: 'Game Time +2s',
-                cost: GameUtils.calculateUpgradeCost(25, timerLevel, 1.8),
-                canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(25, timerLevel, 1.8),
-                canPurchase: true,
-                color: 0x1F3A5F,  // Dark blue
-                action: () => this.buyTimerUpgrade()
-            },
-            {
-                name: 'Buy Basket',
-                cost: GameUtils.calculateUpgradeCost(50, basketLevel, 1.7),
-                canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(50, basketLevel, 1.7),
-                canPurchase: PositionManager.findBasketPosition(baskets, bumpers, flippers, triangles) !== null,
-                color: 0xB34E00,  // Dark orange
-                action: () => this.buyBasket()
-            },
-            {
-                name: 'Buy Square',
-                cost: GameUtils.calculateUpgradeCost(10, triangleLevel, 1.5),
-                canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(10, triangleLevel, 1.5),
-                canPurchase: PositionManager.findTrianglePosition(triangles, baskets, bumpers, flippers) !== null,
-                color: 0xCC6600,  // Dark orange
-                action: () => this.buyTriangle()
-            },
-            {
-                name: 'Buy Flipper',
-                cost: GameUtils.calculateUpgradeCost(20, flipperLevel, 1.5),
-                canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(20, flipperLevel, 1.5),
-                canPurchase: PositionManager.findFlipperPosition(flippers, baskets, bumpers, triangles) !== null,
-                color: 0xE87461,  // Coral
-                action: () => this.buyFlipper()
-            },
-            {
-                name: 'Buy Bumper',
-                cost: GameUtils.calculateUpgradeCost(25, bumperLevel, 1.7),
-                canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(25, bumperLevel, 1.7),
-                canPurchase: PositionManager.findBumperPosition(bumpers, baskets, flippers, triangles) !== null,
-                color: 0x6B2C3E,  // Deep burgundy
-                action: () => this.buyBumper()
-            }
-        ];
+        const autoStartDelay = Math.max(1, 10 - autoStartLevel);
+        const unlockCost = 100;
+        const upgradeCost = 200;
+
+        const prestigeLevel = this.registry.get('prestigeLevel');
+        const prestigeCost = 1000000 * Math.pow(2, prestigeLevel);
+
+        // Organized by column: left (2), center (2), right (4) - sorted by initial price
+        return {
+            left: [
+                {
+                    name: 'Game Time +2s',
+                    cost: GameUtils.calculateUpgradeCost(25, timerLevel, 1.8),
+                    canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(25, timerLevel, 1.8),
+                    canPurchase: true,
+                    color: 0x1F3A5F,  // Dark blue
+                    action: () => this.buyTimerUpgrade()
+                },
+                {
+                    name: 'Max Skulls +1',
+                    cost: GameUtils.calculateUpgradeCost(10, upgradeLevel, 1.6),
+                    canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(10, upgradeLevel, 1.6),
+                    canPurchase: true,
+                    color: 0x2F7F4F,  // Dark green
+                    action: () => this.buySkullUpgrade()
+                }
+            ],
+            center: [
+                {
+                    name: autoStartUnlocked ? `Auto-Start -1s\n(${autoStartDelay}s)` : 'Unlock Auto-Start',
+                    cost: autoStartUnlocked ? upgradeCost : unlockCost,
+                    canAfford: totalSkulls >= (autoStartUnlocked ? upgradeCost : unlockCost),
+                    canPurchase: !autoStartUnlocked || autoStartLevel < 9,
+                    color: 0x7B3F00,  // Dark brown
+                    action: () => this.buyAutoStart()
+                },
+                {
+                    name: `Prestige\n(${prestigeLevel > 0 ? prestigeLevel + 'x' : 'Reset'})`,
+                    cost: prestigeCost,
+                    canAfford: totalSkulls >= prestigeCost,
+                    canPurchase: true,
+                    color: 0x9B30FF,  // Purple
+                    action: () => this.buyPrestige()
+                }
+            ],
+            right: [
+                {
+                    name: 'Buy Square',
+                    cost: GameUtils.calculateUpgradeCost(10, triangleLevel, 1.5),
+                    canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(10, triangleLevel, 1.5),
+                    canPurchase: PositionManager.findTrianglePosition(triangles, baskets, bumpers, flippers) !== null,
+                    color: 0xCC6600,  // Dark orange
+                    action: () => this.buyTriangle()
+                },
+                {
+                    name: 'Buy Flipper',
+                    cost: GameUtils.calculateUpgradeCost(20, flipperLevel, 1.5),
+                    canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(20, flipperLevel, 1.5),
+                    canPurchase: PositionManager.findFlipperPosition(flippers, baskets, bumpers, triangles) !== null,
+                    color: 0xE87461,  // Coral
+                    action: () => this.buyFlipper()
+                },
+                {
+                    name: 'Buy Bumper',
+                    cost: GameUtils.calculateUpgradeCost(25, bumperLevel, 1.7),
+                    canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(25, bumperLevel, 1.7),
+                    canPurchase: PositionManager.findBumperPosition(bumpers, baskets, flippers, triangles) !== null,
+                    color: 0x6B2C3E,  // Deep burgundy
+                    action: () => this.buyBumper()
+                },
+                {
+                    name: 'Buy Basket',
+                    cost: GameUtils.calculateUpgradeCost(50, basketLevel, 1.7),
+                    canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(50, basketLevel, 1.7),
+                    canPurchase: PositionManager.findBasketPosition(baskets, bumpers, flippers, triangles) !== null,
+                    color: 0xB34E00,  // Dark orange
+                    action: () => this.buyBasket()
+                }
+            ]
+        };
     }
 
     createUpgradeButton(x, y, upgrade) {
@@ -147,7 +187,7 @@ class Shop extends Phaser.Scene {
 
         this.add.text(x, y, buttonText, {
             fontFamily: 'Arial Black',
-            fontSize: 16,
+            fontSize: 18,
             color: '#000000',
             stroke: '#ffffff',
             strokeThickness: 2,
@@ -278,6 +318,56 @@ class Shop extends Phaser.Scene {
             newPosition.scaleX = 1;  // Default scale (not flipped)
             flippers.push(newPosition);
             this.registry.set('flippers', flippers);
+            this.scene.restart();
+        }
+    }
+
+    buyAutoStart() {
+        const autoStartUnlocked = this.registry.get('autoStartUnlocked');
+        const autoStartLevel = this.registry.get('autoStartLevel');
+        const cost = autoStartUnlocked ? 200 : 100;
+
+        if (this.registry.get('totalSkulls') >= cost) {
+            this.registry.set('totalSkulls', this.registry.get('totalSkulls') - cost);
+
+            if (!autoStartUnlocked) {
+                this.registry.set('autoStartUnlocked', true);
+            } else if (autoStartLevel < 9) {
+                this.registry.set('autoStartLevel', autoStartLevel + 1);
+            }
+
+            this.scene.restart();
+        }
+    }
+
+    buyPrestige() {
+        const prestigeLevel = this.registry.get('prestigeLevel');
+        const cost = 1000000 * Math.pow(2, prestigeLevel);
+
+        if (this.registry.get('totalSkulls') >= cost) {
+            // Increase prestige level and multiplier
+            this.registry.set('prestigeLevel', prestigeLevel + 1);
+            this.registry.set('prestigeMultiplier', Math.pow(2, prestigeLevel + 1));
+
+            // Reset all progress except prestige
+            this.registry.set('totalSkulls', 200);
+            this.registry.set('maxSkulls', 10);
+            this.registry.set('upgradeLevel', 0);
+            this.registry.set('basketLevel', 0);
+            this.registry.set('timerLevel', 0);
+            this.registry.set('bumperLevel', 0);
+            this.registry.set('flipperLevel', 0);
+            this.registry.set('triangleLevel', 0);
+            this.registry.set('gameTime', 10);
+            this.registry.set('baskets', []);
+            this.registry.set('bumpers', []);
+            this.registry.set('flippers', []);
+            this.registry.set('triangles', []);
+            this.registry.set('highscore', 0);
+            this.registry.set('autoStartUnlocked', false);
+            this.registry.set('autoStartLevel', 0);
+            this.registry.set('autoStartEnabled', false);
+
             this.scene.restart();
         }
     }

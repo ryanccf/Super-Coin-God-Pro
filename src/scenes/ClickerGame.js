@@ -38,6 +38,14 @@ class ClickerGame extends Phaser.Scene {
         this.setupInput();
         this.spawnInitialSkulls();
         this.startTimer();
+
+        // Set initial time scale based on fast forward state
+        const fastForwardEnabled = this.registry.get('fastForwardEnabled');
+        const scale = fastForwardEnabled ? 2 : 1;
+        this.time.timeScale = scale;
+        if (this.matter && this.matter.world) {
+            this.matter.world.engine.timing.timeScale = scale;
+        }
     }
 
     setupWorld() {
@@ -103,6 +111,132 @@ class ClickerGame extends Phaser.Scene {
             strokeThickness: 4
         }).setDepth(1);
         this.timeText = this.add.text(sidebarX, 40, `Time: ${this.gameTime}`, textStyle).setDepth(1);
+
+        // Auto-start UI (only show if unlocked)
+        if (this.registry.get('autoStartUnlocked')) {
+            this.createAutoStartUI();
+        }
+
+        // Fast Forward button (only show if Skeleton Warrior is unlocked)
+        const unlockedItems = this.registry.get('unlockedItems');
+        if (unlockedItems.includes('Skeleton Warrior')) {
+            this.createFastForwardButton();
+        }
+    }
+
+    createFastForwardButton() {
+        const topRightX = GAME_CONFIG.WORLD_WIDTH - 30;
+        const topRightY = this.registry.get('autoStartUnlocked') ? 70 : 30;
+
+        // Button background
+        const buttonWidth = 80;
+        const buttonHeight = 30;
+        this.fastForwardButton = this.add.graphics();
+        this.updateFastForwardButton();
+
+        // Label
+        this.fastForwardLabel = this.add.text(topRightX - 40, topRightY + 15, '2X', {
+            fontFamily: 'Arial Black',
+            fontSize: 20,
+            color: '#000000',
+            stroke: '#ffffff',
+            strokeThickness: 3
+        }).setOrigin(0.5).setDepth(2);
+
+        // Make button interactive
+        const hitArea = new Phaser.Geom.Rectangle(topRightX - buttonWidth, topRightY, buttonWidth, buttonHeight);
+        this.fastForwardButton.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
+        this.fastForwardButton.on('pointerdown', () => this.toggleFastForward());
+    }
+
+    updateFastForwardButton() {
+        if (!this.fastForwardButton) return;
+
+        const topRightX = GAME_CONFIG.WORLD_WIDTH - 30;
+        const topRightY = this.registry.get('autoStartUnlocked') ? 70 : 30;
+        const buttonWidth = 80;
+        const buttonHeight = 30;
+
+        this.fastForwardButton.clear();
+
+        // Color based on state
+        const isEnabled = this.registry.get('fastForwardEnabled');
+        this.fastForwardButton.fillStyle(isEnabled ? 0x00FF00 : 0x808080);
+        this.fastForwardButton.fillRoundedRect(topRightX - buttonWidth, topRightY, buttonWidth, buttonHeight, 8);
+        this.fastForwardButton.lineStyle(3, 0x000000);
+        this.fastForwardButton.strokeRoundedRect(topRightX - buttonWidth, topRightY, buttonWidth, buttonHeight, 8);
+        this.fastForwardButton.setDepth(2);
+    }
+
+    toggleFastForward() {
+        const current = this.registry.get('fastForwardEnabled');
+        this.registry.set('fastForwardEnabled', !current);
+        this.updateFastForwardButton();
+
+        // Update time scale for timers and physics
+        const scale = !current ? 2 : 1;
+        this.time.timeScale = scale;
+        if (this.matter && this.matter.world) {
+            this.matter.world.engine.timing.timeScale = scale;
+        }
+    }
+
+    createAutoStartUI() {
+        const topRightX = GAME_CONFIG.WORLD_WIDTH - 30;
+        const topRightY = 30;
+
+        // Checkbox background
+        const checkboxSize = 24;
+        this.autoStartCheckbox = this.add.graphics();
+        this.autoStartCheckbox.fillStyle(0xffffff);
+        this.autoStartCheckbox.fillRect(topRightX - checkboxSize - 130, topRightY, checkboxSize, checkboxSize);
+        this.autoStartCheckbox.lineStyle(3, 0x000000);
+        this.autoStartCheckbox.strokeRect(topRightX - checkboxSize - 130, topRightY, checkboxSize, checkboxSize);
+        this.autoStartCheckbox.setDepth(2);
+
+        // Checkmark (if enabled)
+        this.autoStartCheckmark = this.add.graphics();
+        this.autoStartCheckmark.setDepth(3);
+        this.updateCheckmark();
+
+        // Label
+        this.autoStartLabel = this.add.text(topRightX - 100, topRightY + 12, 'Auto-Start', {
+            fontFamily: 'Arial Black',
+            fontSize: 18,
+            color: '#000000',
+            stroke: '#ffffff',
+            strokeThickness: 3
+        }).setOrigin(0, 0.5).setDepth(2);
+
+        // Make checkbox interactive
+        const hitArea = new Phaser.Geom.Rectangle(topRightX - checkboxSize - 130, topRightY, checkboxSize + 130, checkboxSize);
+        this.autoStartCheckbox.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
+        this.autoStartCheckbox.on('pointerdown', () => this.toggleAutoStart());
+    }
+
+    updateCheckmark() {
+        if (!this.autoStartCheckmark) return;
+
+        this.autoStartCheckmark.clear();
+
+        if (this.registry.get('autoStartEnabled')) {
+            const topRightX = GAME_CONFIG.WORLD_WIDTH - 30;
+            const topRightY = 30;
+            const checkboxSize = 24;
+
+            this.autoStartCheckmark.lineStyle(3, 0x000000);
+            this.autoStartCheckmark.beginPath();
+            this.autoStartCheckmark.moveTo(topRightX - checkboxSize - 125, topRightY + 12);
+            this.autoStartCheckmark.lineTo(topRightX - checkboxSize - 120, topRightY + 17);
+            this.autoStartCheckmark.lineTo(topRightX - checkboxSize - 110, topRightY + 7);
+            this.autoStartCheckmark.strokePath();
+        }
+    }
+
+    toggleAutoStart() {
+        const current = this.registry.get('autoStartEnabled');
+        this.registry.set('autoStartEnabled', !current);
+        this.updateCheckmark();
     }
 
     createGameObjects() {
@@ -698,8 +832,11 @@ class ClickerGame extends Phaser.Scene {
         const skullObj = this.skullObjects.find(c => c.sprite === sprite);
         if (!skullObj || !skullObj.collect()) return;
 
+        const prestigeMultiplier = this.registry.get('prestigeMultiplier');
+        const displayValue = skullObj.value * prestigeMultiplier;
+
         this.addScore(skullObj.value);
-        this.showBonusText(sprite.x, sprite.y, skullObj.value);
+        this.showBonusText(sprite.x, sprite.y, displayValue);
         this.updateScoreDisplay();
         this.removeSkullFromArray(skullObj);
 
@@ -715,8 +852,11 @@ class ClickerGame extends Phaser.Scene {
         const skullObj = this.skullObjects.find(c => c.sprite === skullSprite);
         if (!skullObj || !skullObj.collectInBasket(basket)) return;
 
+        const prestigeMultiplier = this.registry.get('prestigeMultiplier');
+        const displayValue = skullObj.value * prestigeMultiplier;
+
         this.addScore(skullObj.value);
-        this.showBasketBonusText(basket.x, basket.y, skullObj.value);
+        this.showBasketBonusText(basket.x, basket.y, displayValue);
         this.updateScoreDisplay();
         this.removeSkullFromArray(skullObj);
 
@@ -768,8 +908,11 @@ class ClickerGame extends Phaser.Scene {
         if (this.isGameOver || !basket || !basket.body) return;
 
         const bonusSkulls = 5;
+        const prestigeMultiplier = this.registry.get('prestigeMultiplier');
+        const displayValue = bonusSkulls * prestigeMultiplier;
+
         this.addScore(bonusSkulls);
-        this.showBasketBonusText(basket.x, basket.y - 30, bonusSkulls);
+        this.showBasketBonusText(basket.x, basket.y - 30, displayValue);
         this.updateScoreDisplay();
 
         this.tweens.add({
@@ -782,8 +925,11 @@ class ClickerGame extends Phaser.Scene {
     }
 
     addScore(points) {
-        this.roundScore += points;
-        this.totalSkulls += points;
+        const prestigeMultiplier = this.registry.get('prestigeMultiplier');
+        const actualPoints = points * prestigeMultiplier;
+
+        this.roundScore += actualPoints;
+        this.totalSkulls += actualPoints;
         this.registry.set('totalSkulls', this.totalSkulls);
     }
 
@@ -1027,6 +1173,9 @@ class ClickerGame extends Phaser.Scene {
         if (this.roundScore > currentBest) {
             this.registry.set('highscore', this.roundScore);
         }
+
+        // Reset auto-start timer for the next cycle
+        this.registry.set('autoStartRemainingTime', 0);
 
         // CRITICAL: Disable input FIRST to prevent new events from queuing
         this.input.enabled = false;

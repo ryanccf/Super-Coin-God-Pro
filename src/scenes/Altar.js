@@ -16,10 +16,23 @@ class Altar extends Phaser.Scene {
         square.fillStyle(0x000000);
         square.fillRect(centerX - squareSize / 2, squareY - squareSize / 2, squareSize, squareSize);
 
+        this.createSkullCountDisplay();
         this.createUnlockablesList();
         this.createSkullKnight();
         this.createPrayButton();
         this.createBackButton();
+    }
+
+    createSkullCountDisplay() {
+        const totalSkulls = this.registry.get('totalSkulls');
+
+        this.add.text(GAME_CONFIG.WORLD_WIDTH - 32, 32, `Total Skulls: ${totalSkulls}`, {
+            fontFamily: 'Arial Black',
+            fontSize: 38,
+            color: '#000000',
+            stroke: '#ffffff',
+            strokeThickness: 4
+        }).setOrigin(1, 0);
     }
 
     createUnlockablesList() {
@@ -30,7 +43,6 @@ class Altar extends Phaser.Scene {
         const spacingX = 120;
         const spacingY = 120;
         const thumbnailSize = 100;
-        const cost = 5;
 
         UNLOCKABLES.forEach((itemName, index) => {
             // Check if this item should be visible
@@ -39,6 +51,11 @@ class Altar extends Phaser.Scene {
             const shouldShow = index === 0 || (previousItem && unlockedItems.includes(previousItem));
 
             if (!shouldShow) return;
+
+            // Calculate cost: exponentially scale from 5 to 5000
+            // Using formula: cost = 5 * (1000^(index / (totalItems - 1)))
+            const totalItems = UNLOCKABLES.length;
+            const cost = Math.round(5 * Math.pow(1000, index / (totalItems - 1)));
 
             const row = Math.floor(index / 3);
             const col = index % 3;
@@ -57,8 +74,9 @@ class Altar extends Phaser.Scene {
             bg.strokeRect(-thumbnailSize/2, -thumbnailSize/2, thumbnailSize, thumbnailSize);
             container.add(bg);
 
-            // Thumbnail image
-            const thumbnail = this.add.image(0, 0, itemName);
+            // Thumbnail image (use Skull Knight for Skeleton Warrior)
+            const imageKey = itemName === 'Skeleton Warrior' ? 'Skull Knight' : itemName;
+            const thumbnail = this.add.image(0, 0, imageKey);
             thumbnail.setDisplaySize(thumbnailSize - 4, thumbnailSize - 4);
             container.add(thumbnail);
 
@@ -129,6 +147,16 @@ class Altar extends Phaser.Scene {
             this.scene.launch('Lightbox', { itemName: 'Skull Knight' });
             this.scene.pause();
         });
+
+        // Add ability label below the knight
+        this.add.text(knightX, knightY + knightSize / 2 + 20, 'Adds 2X Fast Forward', {
+            fontFamily: 'Arial Black',
+            fontSize: 18,
+            color: '#000000',
+            stroke: '#ffffff',
+            strokeThickness: 3,
+            align: 'center'
+        }).setOrigin(0.5);
     }
 
     createPrayButton() {

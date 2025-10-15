@@ -25,7 +25,8 @@ const UNLOCKABLES = [
     'Skull Belt',
     'Skull Bow',
     'Skull Quiver',
-    'Skull Sword'
+    'Skull Sword',
+    'Skeleton Warrior'
 ];
 
 const DEFAULT_SAVE_DATA = {
@@ -43,5 +44,12 @@ const DEFAULT_SAVE_DATA = {
     flippers: [],
     triangles: [],
     highscore: 0,
-    unlockedItems: []
+    unlockedItems: [],
+    autoStartUnlocked: false,
+    autoStartLevel: 0,
+    autoStartEnabled: false,
+    autoStartRemainingTime: 0,
+    prestigeLevel: 0,
+    prestigeMultiplier: 1,
+    fastForwardEnabled: false
 };
