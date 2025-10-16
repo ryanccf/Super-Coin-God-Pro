@@ -25,6 +25,7 @@ class ClickerGame extends Phaser.Scene {
         this.triangleSprites = [];
         this.boosterSprites = [];
         this.shrinkerSprites = [];
+        this.portalSprites = [];
         this.duplicatorSprites = [];
         this.selectedFlipper = null;
         this.flipperManipulator = null;
@@ -97,6 +98,22 @@ class ClickerGame extends Phaser.Scene {
 
                 if (collision) {
                     this.handleShrinkerCollision(skullObj, shrinker);
+                }
+            });
+        });
+
+        // Check each skull against each portal
+        this.portalSprites.forEach(portal => {
+            if (!portal || !portal.body) return;
+
+            this.skullObjects.forEach(skullObj => {
+                if (!skullObj || !skullObj.sprite || !skullObj.sprite.body) return;
+
+                // Check if skull overlaps with portal
+                const collision = this.matter.overlap(skullObj.sprite.body, [portal.body]);
+
+                if (collision) {
+                    this.handlePortalCollision(skullObj, portal);
                 }
             });
         });
@@ -322,6 +339,7 @@ class ClickerGame extends Phaser.Scene {
         this.createTriangles();
         this.createBoosters();
         this.createShrinkers();
+        this.createPortals();
         this.createDuplicators();
     }
 
@@ -575,6 +593,47 @@ class ClickerGame extends Phaser.Scene {
             this.shrinkerSprites.push(shrinker);
 
             this.setupShrinkerDragging(shrinker);
+        });
+    }
+
+    createPortals() {
+        const portalPositions = this.registry.get('portals');
+        const totalPairs = portalPositions.length / 2;
+        const showNumbers = totalPairs > 1;
+
+        portalPositions.forEach((pos, index) => {
+            const textureName = pos.color === 'blue' ? 'portal_blue' : 'portal_orange';
+            const portal = this.add.image(pos.x, pos.y, textureName);
+            portal.setInteractive({ draggable: true });
+
+            // Create Matter body - sensor circle (pass-through)
+            this.matter.add.gameObject(portal, {
+                shape: { type: 'circle', radius: 20 },
+                isStatic: true,
+                label: 'portal',
+                isSensor: true  // Sensor so skulls pass through
+            });
+
+            portal.portal = true;  // Identification property
+            portal.portalColor = pos.color;
+            portal.portalIndex = index;
+
+            // Add number label if there's more than one pair
+            if (showNumbers) {
+                const pairNumber = Math.floor(index / 2) + 1;
+                const label = this.add.text(pos.x, pos.y, pairNumber.toString(), {
+                    fontFamily: 'Arial Black',
+                    fontSize: 16,
+                    color: '#000000',
+                    stroke: '#ffffff',
+                    strokeThickness: 3
+                }).setOrigin(0.5);
+                label.setDepth(101);
+                portal.numberLabel = label;
+            }
+
+            this.portalSprites.push(portal);
+            this.setupPortalDragging(portal);
         });
     }
 
@@ -863,6 +922,53 @@ class ClickerGame extends Phaser.Scene {
 
             if (isDragging) {
                 GameUtils.createParticleEffect(this, duplicator.x, duplicator.y, 0x4169E1, 4);
+            }
+            isDragging = false;
+        });
+    }
+
+    setupPortalDragging(portal) {
+        let lastValidX = portal.x;
+        let lastValidY = portal.y;
+        let isDragging = false;
+
+        portal.on('dragstart', () => {
+            if (this.isGameOver) return;
+            isDragging = true;
+            lastValidX = portal.x;
+            lastValidY = portal.y;
+        });
+
+        portal.on('drag', (pointer, dragX, dragY) => {
+            if (this.isGameOver || !portal.body) return;
+
+            const portalPositions = this.registry.get('portals');
+            const index = this.portalSprites.indexOf(portal);
+
+            portal.x = dragX;
+            portal.y = dragY;
+            this.matter.body.setPosition(portal.body, { x: dragX, y: dragY });
+            lastValidX = dragX;
+            lastValidY = dragY;
+
+            // Update number label position if it exists
+            if (portal.numberLabel) {
+                portal.numberLabel.setPosition(dragX, dragY);
+            }
+
+            if (index !== -1 && portalPositions[index]) {
+                portalPositions[index].x = dragX;
+                portalPositions[index].y = dragY;
+                this.registry.set('portals', portalPositions);
+            }
+        });
+
+        portal.on('dragend', () => {
+            if (this.isGameOver) return;
+
+            if (isDragging) {
+                const color = portal.portalColor === 'blue' ? 0x00FFFF : 0xFFFF00;
+                GameUtils.createParticleEffect(this, portal.x, portal.y, color, 4);
             }
             isDragging = false;
         });
@@ -1385,6 +1491,46 @@ class ClickerGame extends Phaser.Scene {
         GameUtils.createParticleEffect(this, duplicator.x, duplicator.y, 0x4169E1, 8);
     }
 
+    handlePortalCollision(skullObj, portal) {
+        // CRITICAL: Check if portal still exists
+        if (!portal || !portal.body) return;
+        if (!skullObj || !skullObj.sprite || !skullObj.sprite.body) return;
+
+        // Initialize portal cooldown tracking if not exists
+        if (!skullObj.portalCooldown) {
+            skullObj.portalCooldown = 0;
+        }
+
+        // Check cooldown - prevent rapid back-and-forth teleportation
+        const currentTime = this.time.now;
+        if (currentTime - skullObj.portalCooldown < 500) return; // 500ms cooldown
+
+        // Get portal pair index (portals come in pairs: blue and orange)
+        const portalIndex = portal.portalIndex;
+
+        // Find the other portal in the pair
+        const otherPortalIndex = portalIndex % 2 === 0 ? portalIndex + 1 : portalIndex - 1;
+        const otherPortal = this.portalSprites[otherPortalIndex];
+
+        if (!otherPortal || !otherPortal.body) return;
+
+        // Teleport skull to other portal
+        const velocity = skullObj.sprite.body.velocity;
+        this.matter.body.setPosition(skullObj.sprite.body, { x: otherPortal.x, y: otherPortal.y });
+
+        // Preserve velocity
+        this.matter.body.setVelocity(skullObj.sprite.body, velocity);
+
+        // Set cooldown to prevent immediate re-teleportation
+        skullObj.portalCooldown = currentTime;
+
+        // Visual effects on both portals
+        const color1 = portal.portalColor === 'blue' ? 0x00FFFF : 0xFFFF00;
+        const color2 = otherPortal.portalColor === 'blue' ? 0x00FFFF : 0xFFFF00;
+        GameUtils.createParticleEffect(this, portal.x, portal.y, color1, 8);
+        GameUtils.createParticleEffect(this, otherPortal.x, otherPortal.y, color2, 8);
+    }
+
     clickBasket(basket) {
         // CRITICAL: Don't process if game is over or basket is destroyed
         if (this.isGameOver || !basket || !basket.body) return;
@@ -1755,6 +1901,7 @@ class ClickerGame extends Phaser.Scene {
         this.triangleSprites = [];
         this.boosterSprites = [];
         this.shrinkerSprites = [];
+        this.portalSprites = [];
         this.duplicatorSprites = [];
 
         // Transition immediately - Phaser will call shutdown() which cleans up everything
@@ -1811,6 +1958,7 @@ class ClickerGame extends Phaser.Scene {
         this.triangleSprites = [];
         this.boosterSprites = [];
         this.shrinkerSprites = [];
+        this.portalSprites = [];
         this.duplicatorSprites = [];
     }
 }

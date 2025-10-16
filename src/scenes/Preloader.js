@@ -43,6 +43,8 @@ class Preloader extends Phaser.Scene {
         AssetCreator.createTriangle(this);
         AssetCreator.createBooster(this);
         AssetCreator.createShrinker(this);
+        AssetCreator.createPortalBlue(this);
+        AssetCreator.createPortalOrange(this);
         AssetCreator.createDuplicator(this);
         AssetCreator.createBigSkull(this);
         AssetCreator.createFloor(this);

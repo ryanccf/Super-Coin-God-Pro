@@ -163,6 +163,14 @@ class Shop extends Phaser.Scene {
                     action: () => this.buyShrinker()
                 },
                 {
+                    name: 'Buy Portal',
+                    cost: GameUtils.calculateUpgradeCost(500, this.registry.get('portalLevel'), 1.5),
+                    canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(500, this.registry.get('portalLevel'), 1.5),
+                    canPurchase: PositionManager.findPortalPosition(this.registry.get('portals'), baskets, bumpers, flippers, triangles) !== null,
+                    color: 0x8040FF,  // Blue-Orange blend
+                    action: () => this.buyPortal()
+                },
+                {
                     name: `Buy Duplicator\n(${this.registry.get('duplicators').length}/${this.registry.get('maxDuplicators')})`,
                     cost: GameUtils.calculateUpgradeCost(1000, this.registry.get('duplicatorLevel'), 1.5),
                     canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(1000, this.registry.get('duplicatorLevel'), 1.5),
@@ -414,6 +422,7 @@ class Shop extends Phaser.Scene {
             this.registry.set('triangleLevel', 0);
             this.registry.set('boosterLevel', 0);
             this.registry.set('shrinkerLevel', 0);
+            this.registry.set('portalLevel', 0);
             this.registry.set('duplicatorLevel', 0);
             this.registry.set('gameTime', 10);
             this.registry.set('baskets', []);
@@ -422,6 +431,7 @@ class Shop extends Phaser.Scene {
             this.registry.set('triangles', []);
             this.registry.set('boosters', []);
             this.registry.set('shrinkers', []);
+            this.registry.set('portals', []);
             this.registry.set('duplicators', []);
             this.registry.set('highscore', 0);
             this.registry.set('autoStartUnlocked', false);
@@ -467,6 +477,27 @@ class Shop extends Phaser.Scene {
 
             shrinkers.push(newPosition);
             this.registry.set('shrinkers', shrinkers);
+            this.scene.restart();
+        }
+    }
+
+    buyPortal() {
+        const cost = GameUtils.calculateUpgradeCost(500, this.registry.get('portalLevel'), 1.5);
+        const baskets = this.registry.get('baskets');
+        const bumpers = this.registry.get('bumpers');
+        const flippers = this.registry.get('flippers');
+        const triangles = this.registry.get('triangles');
+        const portals = this.registry.get('portals');
+        const newPosition = PositionManager.findPortalPosition(portals, baskets, bumpers, flippers, triangles);
+
+        if (this.registry.get('totalSkulls') >= cost && newPosition) {
+            this.registry.set('totalSkulls', this.registry.get('totalSkulls') - cost);
+            this.registry.set('portalLevel', this.registry.get('portalLevel') + 1);
+
+            // Add portal pair (blue at x-10, orange at x+10)
+            portals.push({ x: newPosition.x - 10, y: newPosition.y, color: 'blue' });
+            portals.push({ x: newPosition.x + 10, y: newPosition.y, color: 'orange' });
+            this.registry.set('portals', portals);
             this.scene.restart();
         }
     }

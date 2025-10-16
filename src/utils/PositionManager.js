@@ -67,8 +67,9 @@ class PositionManager {
         const margin = 150;
 
         for (let attempts = 0; attempts < 100; attempts++) {
-            const x = Phaser.Math.Between(margin, GAME_CONFIG.WORLD_WIDTH - margin);
-            const y = Phaser.Math.Between(300, 630);
+            // Bottom right quadrant: x from 512 to 924, y from 450 to 630
+            const x = Phaser.Math.Between(512, GAME_CONFIG.PLAY_AREA_WIDTH - margin);
+            const y = Phaser.Math.Between(450, 630);
 
             if (this.isValidPositionFromAll(x, y, currentBaskets, currentBumpers, currentFlippers, currentTriangles)) {
                 return { x, y, angle: Phaser.Math.Between(0, 360) };
@@ -82,8 +83,25 @@ class PositionManager {
         const margin = 100;
 
         for (let attempts = 0; attempts < 100; attempts++) {
-            const x = Phaser.Math.Between(margin, GAME_CONFIG.WORLD_WIDTH - margin);
-            const y = Phaser.Math.Between(300, 630);
+            // Bottom right quadrant: x from 512 to 924, y from 450 to 630
+            const x = Phaser.Math.Between(512, GAME_CONFIG.PLAY_AREA_WIDTH - margin);
+            const y = Phaser.Math.Between(450, 630);
+
+            if (this.isValidPositionFromAll(x, y, currentBaskets, currentBumpers, currentFlippers, currentTriangles)) {
+                return { x, y };
+            }
+        }
+        return null;
+    }
+
+    static findPortalPosition(currentPortals, currentBaskets, currentBumpers, currentFlippers, currentTriangles) {
+        const portalRadius = 20;
+        const margin = 100;
+
+        for (let attempts = 0; attempts < 100; attempts++) {
+            // Bottom right quadrant: x from 512 to 924, y from 450 to 630
+            const x = Phaser.Math.Between(512, GAME_CONFIG.PLAY_AREA_WIDTH - margin);
+            const y = Phaser.Math.Between(450, 630);
 
             if (this.isValidPositionFromAll(x, y, currentBaskets, currentBumpers, currentFlippers, currentTriangles)) {
                 return { x, y };
@@ -97,8 +115,9 @@ class PositionManager {
         const margin = 100;
 
         for (let attempts = 0; attempts < 100; attempts++) {
-            const x = Phaser.Math.Between(margin, GAME_CONFIG.WORLD_WIDTH - margin);
-            const y = Phaser.Math.Between(300, 630);
+            // Bottom right quadrant: x from 512 to 924, y from 450 to 630
+            const x = Phaser.Math.Between(512, GAME_CONFIG.PLAY_AREA_WIDTH - margin);
+            const y = Phaser.Math.Between(450, 630);
 
             if (this.isValidPositionFromAll(x, y, currentBaskets, currentBumpers, currentFlippers, currentTriangles)) {
                 return { x, y };

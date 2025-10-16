@@ -259,6 +259,38 @@ class AssetCreator {
         duplicatorCanvas.destroy();
     }
 
+    static createPortalBlue(scene) {
+        const portalCanvas = scene.add.graphics();
+        const radius = 20;  // Small circle
+
+        // Blue portal with 70% opacity
+        portalCanvas.fillStyle(0x0080FF, 0.7);
+        portalCanvas.fillCircle(radius, radius, radius);
+
+        // Cyan border
+        portalCanvas.lineStyle(3, 0x00FFFF, 0.9);
+        portalCanvas.strokeCircle(radius, radius, radius);
+
+        portalCanvas.generateTexture('portal_blue', radius * 2, radius * 2);
+        portalCanvas.destroy();
+    }
+
+    static createPortalOrange(scene) {
+        const portalCanvas = scene.add.graphics();
+        const radius = 20;  // Small circle
+
+        // Orange portal with 70% opacity
+        portalCanvas.fillStyle(0xFF8000, 0.7);
+        portalCanvas.fillCircle(radius, radius, radius);
+
+        // Yellow border
+        portalCanvas.lineStyle(3, 0xFFFF00, 0.9);
+        portalCanvas.strokeCircle(radius, radius, radius);
+
+        portalCanvas.generateTexture('portal_orange', radius * 2, radius * 2);
+        portalCanvas.destroy();
+    }
+
     static createFloor(scene) {
         const floorCanvas = scene.add.graphics();
         const floorHeight = GAME_CONFIG.WORLD_HEIGHT - GAME_CONFIG.FLOOR_Y;
