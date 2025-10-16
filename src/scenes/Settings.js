@@ -5,7 +5,7 @@ class Settings extends Phaser.Scene {
 
     create() {
         this.add.image(512, 384, 'background');
-        
+
         this.add.text(512, 200, 'SETTINGS', {
             fontFamily: 'Arial Black',
             fontSize: 64,
@@ -16,6 +16,16 @@ class Settings extends Phaser.Scene {
 
         this.createResetButton();
         this.createBackButton();
+        this.setupInput();
+    }
+
+    setupInput() {
+        // Add P key listener for testing
+        this.input.keyboard.on('keydown-P', () => {
+            const currentTotal = this.registry.get('totalSkulls');
+            this.registry.set('totalSkulls', currentTotal + 100);
+            this.scene.restart();
+        });
     }
 
     createResetButton() {

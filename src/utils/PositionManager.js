@@ -62,6 +62,51 @@ class PositionManager {
         return null;
     }
 
+    static findBoosterPosition(currentBoosters, currentBaskets, currentBumpers, currentFlippers, currentTriangles) {
+        const boosterLength = 140;  // 120 + 20 for arrow
+        const margin = 150;
+
+        for (let attempts = 0; attempts < 100; attempts++) {
+            const x = Phaser.Math.Between(margin, GAME_CONFIG.WORLD_WIDTH - margin);
+            const y = Phaser.Math.Between(300, 630);
+
+            if (this.isValidPositionFromAll(x, y, currentBaskets, currentBumpers, currentFlippers, currentTriangles)) {
+                return { x, y, angle: Phaser.Math.Between(0, 360) };
+            }
+        }
+        return null;
+    }
+
+    static findShrinkerPosition(currentShrinkers, currentBaskets, currentBumpers, currentFlippers, currentTriangles) {
+        const shrinkerRadius = 20;
+        const margin = 100;
+
+        for (let attempts = 0; attempts < 100; attempts++) {
+            const x = Phaser.Math.Between(margin, GAME_CONFIG.WORLD_WIDTH - margin);
+            const y = Phaser.Math.Between(300, 630);
+
+            if (this.isValidPositionFromAll(x, y, currentBaskets, currentBumpers, currentFlippers, currentTriangles)) {
+                return { x, y };
+            }
+        }
+        return null;
+    }
+
+    static findDuplicatorPosition(currentDuplicators, currentBaskets, currentBumpers, currentFlippers, currentTriangles) {
+        const duplicatorRadius = 20;
+        const margin = 100;
+
+        for (let attempts = 0; attempts < 100; attempts++) {
+            const x = Phaser.Math.Between(margin, GAME_CONFIG.WORLD_WIDTH - margin);
+            const y = Phaser.Math.Between(300, 630);
+
+            if (this.isValidPositionFromAll(x, y, currentBaskets, currentBumpers, currentFlippers, currentTriangles)) {
+                return { x, y };
+            }
+        }
+        return null;
+    }
+
     static isValidPositionFromAll(x, y, baskets, bumpers, flippers, triangles = []) {
         const allObjects = [...baskets, ...bumpers, ...flippers, ...triangles];
         return this.isValidPosition(x, y, allObjects, this.MIN_DISTANCE);

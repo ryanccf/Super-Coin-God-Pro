@@ -91,16 +91,18 @@ class TriangleManipulator {
         this.outline.clear();
         this.outline.lineStyle(3, 0xFF0000, 0.1);
 
-        // Draw rotated square outline - 120px side length
-        const size = 120;
-        const halfSize = size / 2;
+        // Draw rotated rectangle outline - 120px width x 60px height
+        const width = 120;
+        const height = 60;
+        const halfWidth = width / 2;
+        const halfHeight = height / 2;
 
-        // Square corners relative to center
+        // Rectangle corners relative to center
         const corners = [
-            { x: -halfSize, y: -halfSize },
-            { x: halfSize, y: -halfSize },
-            { x: halfSize, y: halfSize },
-            { x: -halfSize, y: halfSize }
+            { x: -halfWidth, y: -halfHeight },
+            { x: halfWidth, y: -halfHeight },
+            { x: halfWidth, y: halfHeight },
+            { x: -halfWidth, y: halfHeight }
         ];
 
         // Rotate corners using triangle's rotation

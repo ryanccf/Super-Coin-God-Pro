@@ -127,6 +127,13 @@ class MainMenu extends Phaser.Scene {
                 this.scene.start('ClickerGame');
             }
         });
+
+        // Add P key listener for testing
+        this.input.keyboard.on('keydown-P', () => {
+            const currentTotal = this.registry.get('totalSkulls');
+            this.registry.set('totalSkulls', currentTotal + 100);
+            this.scene.restart();
+        });
     }
 
     createAutoStartUI() {

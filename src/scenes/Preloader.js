@@ -41,15 +41,20 @@ class Preloader extends Phaser.Scene {
         AssetCreator.createBumper(this);
         AssetCreator.createFlipper(this);
         AssetCreator.createTriangle(this);
+        AssetCreator.createBooster(this);
+        AssetCreator.createShrinker(this);
+        AssetCreator.createDuplicator(this);
         AssetCreator.createBigSkull(this);
         AssetCreator.createFloor(this);
 
-        // Load main menu background
+        // Load backgrounds
         this.load.image('main_menu_background', 'src/assets/images/backgrounds/main_menu.png');
+        this.load.image('game_background', 'src/assets/images/backgrounds/game_background.png');
+        this.load.image('game_over_background', 'src/assets/images/backgrounds/game_over_background.png');
 
         // Load unlockables
         UNLOCKABLES.forEach(name => {
-            this.load.image(name, `src/assets/images/unlockables/${name}.png`);
+            this.load.image(name, `src/assets/images/unlockables/Character001/${name}.png`);
         });
 
         // Load rewards

@@ -5,10 +5,24 @@ class GameOver extends Phaser.Scene {
 
     create() {
         const centerX = GAME_CONFIG.WORLD_WIDTH / 2;
+        const centerY = GAME_CONFIG.WORLD_HEIGHT / 2;
         const totalSkulls = this.registry.get('totalSkulls');
         const bestRound = this.registry.get('highscore');
 
-        this.add.image(centerX, 384, 'background');
+        // Add background - use fallback if image doesn't exist
+        if (this.textures.exists('game_over_background')) {
+            const bg = this.add.image(centerX, centerY, 'game_over_background');
+            // Scale to cover the entire screen
+            const scaleX = GAME_CONFIG.WORLD_WIDTH / bg.width;
+            const scaleY = GAME_CONFIG.WORLD_HEIGHT / bg.height;
+            const scale = Math.max(scaleX, scaleY);
+            bg.setScale(scale);
+        } else {
+            // Fallback to solid color background
+            const bg = this.add.graphics();
+            bg.fillStyle(0x2a2a2a);
+            bg.fillRect(0, 0, GAME_CONFIG.WORLD_WIDTH, GAME_CONFIG.WORLD_HEIGHT);
+        }
 
         const message = [
             "Time's Up!",
@@ -17,13 +31,13 @@ class GameOver extends Phaser.Scene {
             `Best Round: ${bestRound}`,
             "",
             "Click to Continue"
-        ];
+        ].join('\n');
 
         this.add.text(centerX, 384, message, {
             fontFamily: 'Arial Black',
             fontSize: 36,
-            color: '#000000',
-            stroke: '#ffffff',
+            color: '#ffffff',
+            stroke: '#000000',
             strokeThickness: 8,
             align: 'center'
         }).setOrigin(0.5);
@@ -36,6 +50,13 @@ class GameOver extends Phaser.Scene {
         this.input.once('pointerdown', () => {
             this.pauseAutoStartTimer();
             this.scene.start('MainMenu');
+        });
+
+        // Add P key listener for testing
+        this.input.keyboard.on('keydown-P', () => {
+            const currentTotal = this.registry.get('totalSkulls');
+            this.registry.set('totalSkulls', currentTotal + 100);
+            this.scene.restart();
         });
     }
 

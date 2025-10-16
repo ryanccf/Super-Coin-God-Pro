@@ -23,10 +23,15 @@ class ClickerGame extends Phaser.Scene {
         this.bumperSprites = [];
         this.flipperSprites = [];
         this.triangleSprites = [];
+        this.boosterSprites = [];
+        this.shrinkerSprites = [];
+        this.duplicatorSprites = [];
         this.selectedFlipper = null;
         this.flipperManipulator = null;
         this.selectedTriangle = null;
         this.triangleManipulator = null;
+        this.selectedBooster = null;
+        this.boosterManipulator = null;
         this.clickedGameObject = false;
     }
 
@@ -46,10 +51,81 @@ class ClickerGame extends Phaser.Scene {
         if (this.matter && this.matter.world) {
             this.matter.world.engine.timing.timeScale = scale;
         }
+
+        // Start booster update loop
+        this.startBoosterUpdate();
+    }
+
+    startBoosterUpdate() {
+        // Check for booster and shrinker overlaps every physics frame
+        this.boosterUpdateTimer = this.time.addEvent({
+            delay: 16, // ~60fps
+            callback: () => this.updateBoostersAndShrinkers(),
+            callbackScope: this,
+            loop: true
+        });
+    }
+
+    updateBoostersAndShrinkers() {
+        if (this.isGameOver) return;
+
+        // Check each skull against each booster
+        this.boosterSprites.forEach(booster => {
+            if (!booster || !booster.body) return;
+
+            this.skullObjects.forEach(skullObj => {
+                if (!skullObj || !skullObj.sprite || !skullObj.sprite.body) return;
+
+                // Check if skull overlaps with booster
+                const collision = this.matter.overlap(skullObj.sprite.body, [booster.body]);
+
+                if (collision) {
+                    this.handleBoosterCollision(skullObj.sprite, booster);
+                }
+            });
+        });
+
+        // Check each skull against each shrinker
+        this.shrinkerSprites.forEach(shrinker => {
+            if (!shrinker || !shrinker.body) return;
+
+            this.skullObjects.forEach(skullObj => {
+                if (!skullObj || !skullObj.sprite || !skullObj.sprite.body) return;
+
+                // Check if skull overlaps with shrinker
+                const collision = this.matter.overlap(skullObj.sprite.body, [shrinker.body]);
+
+                if (collision) {
+                    this.handleShrinkerCollision(skullObj, shrinker);
+                }
+            });
+        });
+
+        // Check each skull against each duplicator
+        this.duplicatorSprites.forEach(duplicator => {
+            if (!duplicator || !duplicator.body) return;
+
+            this.skullObjects.forEach(skullObj => {
+                if (!skullObj || !skullObj.sprite || !skullObj.sprite.body) return;
+
+                // Check if skull overlaps with duplicator
+                const collision = this.matter.overlap(skullObj.sprite.body, [duplicator.body]);
+
+                if (collision) {
+                    this.handleDuplicatorCollision(skullObj, duplicator);
+                }
+            });
+        });
     }
 
     setupWorld() {
-        this.add.image(512, 384, 'background');
+        const bg = this.add.image(GAME_CONFIG.WORLD_WIDTH / 2, GAME_CONFIG.WORLD_HEIGHT / 2, 'game_background');
+        // Scale to cover the entire screen
+        const scaleX = GAME_CONFIG.WORLD_WIDTH / bg.width;
+        const scaleY = GAME_CONFIG.WORLD_HEIGHT / bg.height;
+        const scale = Math.max(scaleX, scaleY);
+        bg.setScale(scale);
+
         this.add.image(512, GAME_CONFIG.FLOOR_Y, 'floor').setOrigin(0.5, 0);
 
         // Create dark grey sidebar
@@ -244,6 +320,9 @@ class ClickerGame extends Phaser.Scene {
         this.createBumpers();
         this.createFlippers();
         this.createTriangles();
+        this.createBoosters();
+        this.createShrinkers();
+        this.createDuplicators();
     }
 
     createBaskets() {
@@ -429,9 +508,9 @@ class ClickerGame extends Phaser.Scene {
             const triangle = this.add.image(pos.x, pos.y, 'triangle');
             triangle.setInteractive({ draggable: true });
 
-            // Create Matter body - square that rotates with sprite!
+            // Create Matter body - rectangle (board) that rotates with sprite!
             this.matter.add.gameObject(triangle, {
-                shape: { type: 'rectangle', width: 120, height: 120 },
+                shape: { type: 'rectangle', width: 120, height: 60 },
                 isStatic: true,
                 label: 'triangle'
             });
@@ -447,6 +526,76 @@ class ClickerGame extends Phaser.Scene {
             this.triangleSprites.push(triangle);
 
             this.setupTriangleDragging(triangle);
+        });
+    }
+
+    createBoosters() {
+        const boosterPositions = this.registry.get('boosters');
+        boosterPositions.forEach(pos => {
+            const booster = this.add.image(pos.x, pos.y, 'booster');
+            booster.setInteractive({ draggable: true });
+
+            // Create Matter body - sensor rectangle (pass-through)
+            this.matter.add.gameObject(booster, {
+                shape: { type: 'rectangle', width: 140, height: 30 },
+                isStatic: true,
+                label: 'booster',
+                isSensor: true  // Sensor so skulls pass through
+            });
+
+            // Load saved angle or use default (0 = pointing right)
+            const angle = pos.angle !== undefined ? pos.angle : 0;
+            booster.setRotation(Phaser.Math.DegToRad(angle));
+
+            // Store the base angle
+            booster.baseAngle = angle;
+
+            booster.booster = true;  // Identification property
+            this.boosterSprites.push(booster);
+
+            this.setupBoosterDragging(booster);
+        });
+    }
+
+    createShrinkers() {
+        const shrinkerPositions = this.registry.get('shrinkers');
+        shrinkerPositions.forEach(pos => {
+            const shrinker = this.add.image(pos.x, pos.y, 'shrinker');
+            shrinker.setInteractive({ draggable: true });
+
+            // Create Matter body - sensor circle (pass-through)
+            this.matter.add.gameObject(shrinker, {
+                shape: { type: 'circle', radius: 20 },
+                isStatic: true,
+                label: 'shrinker',
+                isSensor: true  // Sensor so skulls pass through
+            });
+
+            shrinker.shrinker = true;  // Identification property
+            this.shrinkerSprites.push(shrinker);
+
+            this.setupShrinkerDragging(shrinker);
+        });
+    }
+
+    createDuplicators() {
+        const duplicatorPositions = this.registry.get('duplicators');
+        duplicatorPositions.forEach(pos => {
+            const duplicator = this.add.image(pos.x, pos.y, 'duplicator');
+            duplicator.setInteractive({ draggable: true });
+
+            // Create Matter body - sensor circle (pass-through)
+            this.matter.add.gameObject(duplicator, {
+                shape: { type: 'circle', radius: 20 },
+                isStatic: true,
+                label: 'duplicator',
+                isSensor: true  // Sensor so skulls pass through
+            });
+
+            duplicator.duplicator = true;  // Identification property
+            this.duplicatorSprites.push(duplicator);
+
+            this.setupDuplicatorDragging(duplicator);
         });
     }
 
@@ -572,6 +721,11 @@ class ClickerGame extends Phaser.Scene {
                 trianglePositions[index].y = dragY;
                 this.registry.set('triangles', trianglePositions);
             }
+
+            // Update manipulator if this triangle is selected
+            if (this.triangleManipulator && this.triangleManipulator.isActive && this.selectedTriangle === triangle) {
+                this.triangleManipulator.updateUI();
+            }
         });
 
         triangle.on('dragend', () => {
@@ -581,6 +735,134 @@ class ClickerGame extends Phaser.Scene {
             // Only create particles if we actually dragged
             if (isDragging) {
                 GameUtils.createParticleEffect(this, triangle.x, triangle.y, 0xFF8C42, 4);
+            }
+            isDragging = false;
+        });
+    }
+
+    setupBoosterDragging(booster) {
+        let lastValidX = booster.x;
+        let lastValidY = booster.y;
+        let isDragging = false;
+
+        booster.on('dragstart', () => {
+            if (this.isGameOver) return;
+            isDragging = true;
+            lastValidX = booster.x;
+            lastValidY = booster.y;
+        });
+
+        booster.on('drag', (pointer, dragX, dragY) => {
+            if (this.isGameOver || !booster.body) return;
+
+            const boosterPositions = this.registry.get('boosters');
+            const index = this.boosterSprites.indexOf(booster);
+
+            booster.x = dragX;
+            booster.y = dragY;
+            this.matter.body.setPosition(booster.body, { x: dragX, y: dragY });
+            lastValidX = dragX;
+            lastValidY = dragY;
+
+            if (index !== -1 && boosterPositions[index]) {
+                boosterPositions[index].x = dragX;
+                boosterPositions[index].y = dragY;
+                this.registry.set('boosters', boosterPositions);
+            }
+
+            // Update manipulator if this booster is selected
+            if (this.boosterManipulator && this.boosterManipulator.isActive && this.selectedBooster === booster) {
+                this.boosterManipulator.updateUI();
+            }
+        });
+
+        booster.on('dragend', () => {
+            if (this.isGameOver) return;
+
+            if (isDragging) {
+                GameUtils.createParticleEffect(this, booster.x, booster.y, 0x00FF00, 4);
+            }
+            isDragging = false;
+        });
+    }
+
+    setupShrinkerDragging(shrinker) {
+        let lastValidX = shrinker.x;
+        let lastValidY = shrinker.y;
+        let isDragging = false;
+
+        shrinker.on('dragstart', () => {
+            if (this.isGameOver) return;
+            isDragging = true;
+            lastValidX = shrinker.x;
+            lastValidY = shrinker.y;
+        });
+
+        shrinker.on('drag', (pointer, dragX, dragY) => {
+            if (this.isGameOver || !shrinker.body) return;
+
+            const shrinkerPositions = this.registry.get('shrinkers');
+            const index = this.shrinkerSprites.indexOf(shrinker);
+
+            shrinker.x = dragX;
+            shrinker.y = dragY;
+            this.matter.body.setPosition(shrinker.body, { x: dragX, y: dragY });
+            lastValidX = dragX;
+            lastValidY = dragY;
+
+            if (index !== -1 && shrinkerPositions[index]) {
+                shrinkerPositions[index].x = dragX;
+                shrinkerPositions[index].y = dragY;
+                this.registry.set('shrinkers', shrinkerPositions);
+            }
+        });
+
+        shrinker.on('dragend', () => {
+            if (this.isGameOver) return;
+
+            if (isDragging) {
+                GameUtils.createParticleEffect(this, shrinker.x, shrinker.y, 0xFF69B4, 4);
+            }
+            isDragging = false;
+        });
+    }
+
+    setupDuplicatorDragging(duplicator) {
+        let lastValidX = duplicator.x;
+        let lastValidY = duplicator.y;
+        let isDragging = false;
+
+        duplicator.on('dragstart', () => {
+            if (this.isGameOver) return;
+            isDragging = true;
+            lastValidX = duplicator.x;
+            lastValidY = duplicator.y;
+        });
+
+        duplicator.on('drag', (pointer, dragX, dragY) => {
+            if (this.isGameOver || !duplicator.body) return;
+
+            const duplicatorPositions = this.registry.get('duplicators');
+            const index = this.duplicatorSprites.indexOf(duplicator);
+
+            duplicator.x = dragX;
+            duplicator.y = dragY;
+            this.matter.body.setPosition(duplicator.body, { x: dragX, y: dragY });
+            lastValidX = dragX;
+            lastValidY = dragY;
+
+            if (index !== -1 && duplicatorPositions[index]) {
+                duplicatorPositions[index].x = dragX;
+                duplicatorPositions[index].y = dragY;
+                this.registry.set('duplicators', duplicatorPositions);
+            }
+        });
+
+        duplicator.on('dragend', () => {
+            if (this.isGameOver) return;
+
+            if (isDragging) {
+                GameUtils.createParticleEffect(this, duplicator.x, duplicator.y, 0x4169E1, 4);
             }
             isDragging = false;
         });
@@ -636,6 +918,31 @@ class ClickerGame extends Phaser.Scene {
         this.selectedTriangle = null;
     }
 
+    selectBooster(booster) {
+        // Deselect previous booster if any
+        if (this.selectedBooster !== booster) {
+            this.deselectBooster();
+        }
+
+        this.selectedBooster = booster;
+
+        // Create manipulator if it doesn't exist
+        if (!this.boosterManipulator) {
+            this.boosterManipulator = new BoosterManipulator(this, booster);
+        } else {
+            this.boosterManipulator.booster = booster;
+        }
+
+        this.boosterManipulator.show();
+    }
+
+    deselectBooster() {
+        if (this.boosterManipulator) {
+            this.boosterManipulator.hide();
+        }
+        this.selectedBooster = null;
+    }
+
     setupPhysics() {
         // Matter Physics uses global collision events
         // Store reference so we can properly remove it later
@@ -678,6 +985,10 @@ class ClickerGame extends Phaser.Scene {
                         else if (other.triangle) {
                             this.handleTriangleCollision(skull.sprite, other);
                         }
+                        // Skull hit booster (sensor collision)
+                        else if (other.booster) {
+                            this.handleBoosterCollision(skull.sprite, other);
+                        }
                     }
                 });
             } catch (e) {
@@ -699,6 +1010,14 @@ class ClickerGame extends Phaser.Scene {
         // Flag to track if gameobjectdown fired this click
         // Phaser guarantees gameobjectdown fires BEFORE pointerdown
         this.clickedGameObject = false;
+
+        // Add P key listener for testing
+        this.input.keyboard.on('keydown-P', () => {
+            const currentTotal = this.registry.get('totalSkulls');
+            this.registry.set('totalSkulls', currentTotal + 100);
+            this.totalSkulls = currentTotal + 100;
+            this.updateScoreDisplay();
+        });
 
         this.input.on('gameobjectdown', (pointer, gameObject) => {
             this.clickedGameObject = true;
@@ -722,6 +1041,14 @@ class ClickerGame extends Phaser.Scene {
                 }
             }
 
+            if (this.boosterManipulator && this.boosterManipulator.isActive) {
+                if (gameObject === this.boosterManipulator.rotationHandle ||
+                    gameObject === this.boosterManipulator.outline ||
+                    gameObject === this.boosterManipulator.rotationIcon) {
+                    return; // Ignore clicks on manipulator UI
+                }
+            }
+
             if (gameObject.texture) {
                 if (gameObject.texture.key.startsWith('skull_')) {
                     this.handleSkullClick(gameObject);
@@ -731,18 +1058,28 @@ class ClickerGame extends Phaser.Scene {
                     const flipper = this.flipperSprites.find(f => f === gameObject);
                     if (flipper) {
                         this.deselectTriangle();
+                        this.deselectBooster();
                         this.selectFlipper(flipper);
                     }
                 } else if (gameObject.texture.key === 'triangle') {
                     const triangle = this.triangleSprites.find(t => t === gameObject);
                     if (triangle) {
                         this.deselectFlipper();
+                        this.deselectBooster();
                         this.selectTriangle(triangle);
+                    }
+                } else if (gameObject.texture.key === 'booster') {
+                    const booster = this.boosterSprites.find(b => b === gameObject);
+                    if (booster) {
+                        this.deselectFlipper();
+                        this.deselectTriangle();
+                        this.selectBooster(booster);
                     }
                 } else {
                     // Clicked some other game object (basket, bumper, etc.) - deselect
                     this.deselectFlipper();
                     this.deselectTriangle();
+                    this.deselectBooster();
                 }
             }
         });
@@ -785,9 +1122,22 @@ class ClickerGame extends Phaser.Scene {
                     );
                 }
 
+                if (!clickedControls && this.boosterManipulator && this.boosterManipulator.isActive) {
+                    clickedControls = Phaser.Geom.Circle.Contains(
+                        new Phaser.Geom.Circle(
+                            this.boosterManipulator.rotationHandle.x,
+                            this.boosterManipulator.rotationHandle.y,
+                            12
+                        ),
+                        pointer.x,
+                        pointer.y
+                    );
+                }
+
                 if (!clickedControls) {
                     this.deselectFlipper();
                     this.deselectTriangle();
+                    this.deselectBooster();
                 }
             }
 
@@ -901,6 +1251,138 @@ class ClickerGame extends Phaser.Scene {
     handleTriangleCollision(skullSprite, triangle) {
         // Triangles are static - skulls just roll off them naturally
         // No force application needed
+    }
+
+    handleBoosterCollision(skullSprite, booster) {
+        // CRITICAL: Check if booster still exists
+        if (!booster || !booster.body) return;
+
+        const skullObj = this.skullObjects.find(c => c.sprite === skullSprite);
+        if (!skullObj || !skullObj.sprite || !skullObj.sprite.body) return;
+
+        // Apply momentum in the direction of the booster's arrow
+        const boosterAngle = booster.rotation;
+        const forceMagnitude = 0.025;  // Moderate continuous force
+
+        const forceX = Math.cos(boosterAngle) * forceMagnitude;
+        const forceY = Math.sin(boosterAngle) * forceMagnitude;
+
+        // Apply force to skull body using Matter.js directly
+        this.matter.body.applyForce(
+            skullObj.sprite.body,
+            { x: skullObj.sprite.x, y: skullObj.sprite.y },
+            { x: forceX, y: forceY }
+        );
+
+        // Visual effect (only show occasionally to avoid spam)
+        if (!booster.lastEffectTime || this.time.now - booster.lastEffectTime > 200) {
+            GameUtils.createParticleEffect(this, booster.x, booster.y, 0x00FF00, 4);
+            booster.lastEffectTime = this.time.now;
+        }
+    }
+
+    handleShrinkerCollision(skullObj, shrinker) {
+        // CRITICAL: Check if shrinker still exists
+        if (!shrinker || !shrinker.body) return;
+        if (!skullObj || !skullObj.sprite || !skullObj.sprite.body) return;
+
+        // Initialize shrinking tracking if not exists
+        if (!skullObj.shrinkersApplied) {
+            skullObj.shrinkersApplied = new Set();
+        }
+
+        // Check if this shrinker already affected this skull
+        const shrinkerId = this.shrinkerSprites.indexOf(shrinker);
+        if (skullObj.shrinkersApplied.has(shrinkerId)) return;
+
+        // For big skulls, stop any pulsing tweens first
+        if (skullObj.isBig) {
+            this.tweens.getTweensOf(skullObj.sprite).forEach(tween => tween.remove());
+        }
+
+        // Calculate new scale (reduce by 10%, minimum 10% of original)
+        const currentScale = skullObj.sprite.scaleX;
+        const newScale = Math.max(0.1, currentScale * 0.9);
+
+        // Apply shrinking
+        skullObj.sprite.setScale(newScale);
+
+        // For big skulls, restart pulsing tween at new scale
+        if (skullObj.isBig) {
+            this.tweens.add({
+                targets: skullObj.sprite,
+                scaleX: newScale * 1.2,
+                scaleY: newScale * 1.2,
+                duration: 500,
+                yoyo: true,
+                repeat: -1
+            });
+        }
+
+        // Mark this shrinker as applied
+        skullObj.shrinkersApplied.add(shrinkerId);
+
+        // Visual effect
+        GameUtils.createParticleEffect(this, shrinker.x, shrinker.y, 0xFF69B4, 6);
+    }
+
+    handleDuplicatorCollision(skullObj, duplicator) {
+        // CRITICAL: Check if duplicator still exists
+        if (!duplicator || !duplicator.body) return;
+        if (!skullObj || !skullObj.sprite || !skullObj.sprite.body) return;
+
+        // Initialize duplication tracking if not exists
+        if (!skullObj.duplicatorsApplied) {
+            skullObj.duplicatorsApplied = new Set();
+        }
+
+        // Check if this duplicator already affected this skull
+        const duplicatorId = this.duplicatorSprites.indexOf(duplicator);
+        if (skullObj.duplicatorsApplied.has(duplicatorId)) return;
+
+        // Create a clone at the same position
+        const clone = new Skull(this, skullObj.sprite.x, skullObj.sprite.y, skullObj.value, skullObj.isBig);
+
+        // Clone inherits the same scale as the original
+        clone.sprite.setScale(skullObj.sprite.scaleX);
+
+        // Clone inherits the shrinkersApplied Set (copy it)
+        if (skullObj.shrinkersApplied) {
+            clone.shrinkersApplied = new Set(skullObj.shrinkersApplied);
+        }
+
+        // Clone inherits the duplicatorsApplied Set from parent (copy it)
+        // This ensures the clone AND its descendants cannot use the parent duplicator
+        if (skullObj.duplicatorsApplied) {
+            clone.duplicatorsApplied = new Set(skullObj.duplicatorsApplied);
+        } else {
+            clone.duplicatorsApplied = new Set();
+        }
+
+        // Also add the current duplicator to the clone's set
+        clone.duplicatorsApplied.add(duplicatorId);
+
+        // For big skulls, ensure clone has pulsing animation
+        if (clone.isBig) {
+            this.tweens.add({
+                targets: clone.sprite,
+                scaleX: clone.sprite.scaleX * 1.2,
+                scaleY: clone.sprite.scaleY * 1.2,
+                duration: 500,
+                yoyo: true,
+                repeat: -1
+            });
+        }
+
+        // Add clone to skull objects
+        this.skullObjects.push(clone);
+        this.setupCollisionForSkull(clone);
+
+        // Mark this duplicator as applied to the original skull
+        skullObj.duplicatorsApplied.add(duplicatorId);
+
+        // Visual effect
+        GameUtils.createParticleEffect(this, duplicator.x, duplicator.y, 0x4169E1, 8);
     }
 
     clickBasket(basket) {
@@ -1129,6 +1611,11 @@ class ClickerGame extends Phaser.Scene {
             this.triangleManipulator.updateUI();
         }
 
+        // Update manipulator UI to follow booster
+        if (this.boosterManipulator && this.boosterManipulator.isActive) {
+            this.boosterManipulator.updateUI();
+        }
+
         // Safety check: ensure flippers maintain correct scale and angle when not tweening
         this.flipperSprites.forEach(flipper => {
             // CRITICAL: Skip if flipper or body is destroyed/missing
@@ -1266,6 +1753,9 @@ class ClickerGame extends Phaser.Scene {
         this.bumperSprites = [];
         this.flipperSprites = [];
         this.triangleSprites = [];
+        this.boosterSprites = [];
+        this.shrinkerSprites = [];
+        this.duplicatorSprites = [];
 
         // Transition immediately - Phaser will call shutdown() which cleans up everything
         this.scene.start('GameOver');
@@ -1319,5 +1809,8 @@ class ClickerGame extends Phaser.Scene {
         this.bumperSprites = [];
         this.flipperSprites = [];
         this.triangleSprites = [];
+        this.boosterSprites = [];
+        this.shrinkerSprites = [];
+        this.duplicatorSprites = [];
     }
 }

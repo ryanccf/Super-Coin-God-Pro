@@ -187,21 +187,76 @@ class AssetCreator {
     static createTriangle(scene) {
         const triangleCanvas = scene.add.graphics();
 
-        // Square - 120px side length
-        const size = 120;
+        // Board - 120px width, 60px height (half of square)
+        const width = 120;
+        const height = 60;
 
-        // Center the square
+        // Center the rectangle
         const centerX = 60;
-        const centerY = 60;
+        const centerY = 30;
 
         triangleCanvas.fillStyle(0xFF8C42);  // Orange
-        triangleCanvas.fillRect(centerX - size/2, centerY - size/2, size, size);
+        triangleCanvas.fillRect(centerX - width/2, centerY - height/2, width, height);
 
         triangleCanvas.lineStyle(6, 0x000000);  // Black border, thicker
-        triangleCanvas.strokeRect(centerX - size/2, centerY - size/2, size, size);
+        triangleCanvas.strokeRect(centerX - width/2, centerY - height/2, width, height);
 
-        triangleCanvas.generateTexture('triangle', 120, 120);
+        triangleCanvas.generateTexture('triangle', 120, 60);
         triangleCanvas.destroy();
+    }
+
+    static createBooster(scene) {
+        const boosterCanvas = scene.add.graphics();
+        const length = 120;  // Same as box width
+        const width = 30;
+
+        // Green rectangle with 50% opacity
+        boosterCanvas.fillStyle(0x00FF00, 0.5);
+        boosterCanvas.fillRect(0, 0, length, width);
+
+        // Arrow head at the right end
+        boosterCanvas.fillStyle(0x00FF00, 0.5);
+        boosterCanvas.beginPath();
+        boosterCanvas.moveTo(length, width / 2);  // Arrow tip
+        boosterCanvas.lineTo(length - 20, 0);     // Top corner
+        boosterCanvas.lineTo(length - 20, width); // Bottom corner
+        boosterCanvas.closePath();
+        boosterCanvas.fillPath();
+
+        boosterCanvas.generateTexture('booster', length + 20, width);
+        boosterCanvas.destroy();
+    }
+
+    static createShrinker(scene) {
+        const shrinkerCanvas = scene.add.graphics();
+        const radius = 20;  // Small circle
+
+        // Pink circle with 60% opacity
+        shrinkerCanvas.fillStyle(0xFF69B4, 0.6);
+        shrinkerCanvas.fillCircle(radius, radius, radius);
+
+        // Pink border
+        shrinkerCanvas.lineStyle(3, 0xFF1493, 0.8);
+        shrinkerCanvas.strokeCircle(radius, radius, radius);
+
+        shrinkerCanvas.generateTexture('shrinker', radius * 2, radius * 2);
+        shrinkerCanvas.destroy();
+    }
+
+    static createDuplicator(scene) {
+        const duplicatorCanvas = scene.add.graphics();
+        const radius = 20;  // Small circle
+
+        // Blue circle with 60% opacity
+        duplicatorCanvas.fillStyle(0x4169E1, 0.6);
+        duplicatorCanvas.fillCircle(radius, radius, radius);
+
+        // Darker blue border
+        duplicatorCanvas.lineStyle(3, 0x1E3A8A, 0.8);
+        duplicatorCanvas.strokeCircle(radius, radius, radius);
+
+        duplicatorCanvas.generateTexture('duplicator', radius * 2, radius * 2);
+        duplicatorCanvas.destroy();
     }
 
     static createFloor(scene) {

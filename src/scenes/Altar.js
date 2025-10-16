@@ -17,10 +17,21 @@ class Altar extends Phaser.Scene {
         square.fillRect(centerX - squareSize / 2, squareY - squareSize / 2, squareSize, squareSize);
 
         this.createSkullCountDisplay();
+        this.createFlavorText();
         this.createUnlockablesList();
         this.createSkullKnight();
         this.createPrayButton();
         this.createBackButton();
+        this.setupInput();
+    }
+
+    setupInput() {
+        // Add P key listener for testing
+        this.input.keyboard.on('keydown-P', () => {
+            const currentTotal = this.registry.get('totalSkulls');
+            this.registry.set('totalSkulls', currentTotal + 100);
+            this.scene.restart();
+        });
     }
 
     createSkullCountDisplay() {
@@ -33,6 +44,24 @@ class Altar extends Phaser.Scene {
             stroke: '#ffffff',
             strokeThickness: 4
         }).setOrigin(1, 0);
+    }
+
+    createFlavorText() {
+        const centerX = GAME_CONFIG.WORLD_WIDTH / 2;
+        const rightSideX = centerX + (GAME_CONFIG.WORLD_WIDTH - centerX) / 2;
+
+        this.add.text(rightSideX, 100,
+            "Resurrect the 4 Skull Masters\nto beckon the Skull God's return\nto the material plane!",
+            {
+                fontFamily: 'Arial Black',
+                fontSize: 20,
+                color: '#000000',
+                stroke: '#ffffff',
+                strokeThickness: 3,
+                align: 'center',
+                wordWrap: { width: 400 }
+            }
+        ).setOrigin(0.5, 0);
     }
 
     createUnlockablesList() {

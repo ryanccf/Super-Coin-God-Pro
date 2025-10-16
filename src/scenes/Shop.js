@@ -8,6 +8,16 @@ class Shop extends Phaser.Scene {
         this.createHeader();
         this.createUpgradeButtons();
         this.createNavigationButtons();
+        this.setupInput();
+    }
+
+    setupInput() {
+        // Add P key listener for testing
+        this.input.keyboard.on('keydown-P', () => {
+            const currentTotal = this.registry.get('totalSkulls');
+            this.registry.set('totalSkulls', currentTotal + 100);
+            this.scene.restart();
+        });
     }
 
     setupBackground() {
@@ -96,7 +106,10 @@ class Shop extends Phaser.Scene {
         const prestigeLevel = this.registry.get('prestigeLevel');
         const prestigeCost = 1000000 * Math.pow(2, prestigeLevel);
 
-        // Organized by column: left (2), center (2), right (4) - sorted by initial price
+        const boosterLevel = this.registry.get('boosterLevel');
+        const boosters = this.registry.get('boosters');
+
+        // Organized by column: left (4), center (2), right (4) - sorted by initial price
         return {
             left: [
                 {
@@ -114,9 +127,7 @@ class Shop extends Phaser.Scene {
                     canPurchase: true,
                     color: 0x2F7F4F,  // Dark green
                     action: () => this.buySkullUpgrade()
-                }
-            ],
-            center: [
+                },
                 {
                     name: autoStartUnlocked ? `Auto-Start -1s\n(${autoStartDelay}s)` : 'Unlock Auto-Start',
                     cost: autoStartUnlocked ? upgradeCost : unlockCost,
@@ -126,7 +137,7 @@ class Shop extends Phaser.Scene {
                     action: () => this.buyAutoStart()
                 },
                 {
-                    name: `Prestige\n(${prestigeLevel > 0 ? prestigeLevel + 'x' : 'Reset'})`,
+                    name: `Prestige\n2X Skull Value\n+1 Max Duplicators`,
                     cost: prestigeCost,
                     canAfford: totalSkulls >= prestigeCost,
                     canPurchase: true,
@@ -134,9 +145,35 @@ class Shop extends Phaser.Scene {
                     action: () => this.buyPrestige()
                 }
             ],
+            center: [
+                {
+                    name: 'Buy Booster',
+                    cost: GameUtils.calculateUpgradeCost(10, boosterLevel, 1.5),
+                    canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(10, boosterLevel, 1.5),
+                    canPurchase: PositionManager.findBoosterPosition(boosters, baskets, bumpers, flippers, triangles) !== null,
+                    color: 0x00AA00,  // Green
+                    action: () => this.buyBooster()
+                },
+                {
+                    name: 'Buy Head Shrinker',
+                    cost: GameUtils.calculateUpgradeCost(15, this.registry.get('shrinkerLevel'), 1.5),
+                    canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(15, this.registry.get('shrinkerLevel'), 1.5),
+                    canPurchase: PositionManager.findShrinkerPosition(this.registry.get('shrinkers'), baskets, bumpers, flippers, triangles) !== null,
+                    color: 0xFF69B4,  // Pink
+                    action: () => this.buyShrinker()
+                },
+                {
+                    name: `Buy Duplicator\n(${this.registry.get('duplicators').length}/${this.registry.get('maxDuplicators')})`,
+                    cost: GameUtils.calculateUpgradeCost(1000, this.registry.get('duplicatorLevel'), 1.5),
+                    canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(1000, this.registry.get('duplicatorLevel'), 1.5),
+                    canPurchase: this.registry.get('duplicators').length < this.registry.get('maxDuplicators') && PositionManager.findDuplicatorPosition(this.registry.get('duplicators'), baskets, bumpers, flippers, triangles) !== null,
+                    color: 0x4169E1,  // Royal Blue
+                    action: () => this.buyDuplicator()
+                }
+            ],
             right: [
                 {
-                    name: 'Buy Square',
+                    name: 'Buy Board',
                     cost: GameUtils.calculateUpgradeCost(10, triangleLevel, 1.5),
                     canAfford: totalSkulls >= GameUtils.calculateUpgradeCost(10, triangleLevel, 1.5),
                     canPurchase: PositionManager.findTrianglePosition(triangles, baskets, bumpers, flippers) !== null,
@@ -182,8 +219,21 @@ class Shop extends Phaser.Scene {
         button.strokeRoundedRect(x-140, y-35, 280, 70, 10);
 
         let buttonText = `${upgrade.name}\nCost: ${upgrade.cost}`;
-        if (!upgrade.canPurchase) buttonText += ' (No space!)';
-        else if (!upgrade.canAfford) buttonText += ' (Need more!)';
+
+        // Special handling for duplicator max limit
+        if (upgrade.name.includes('Duplicator') && !upgrade.canPurchase) {
+            const duplicators = this.registry.get('duplicators');
+            const maxDuplicators = this.registry.get('maxDuplicators');
+            if (duplicators.length >= maxDuplicators) {
+                buttonText += ' (Max!)';
+            } else {
+                buttonText += ' (No space!)';
+            }
+        } else if (!upgrade.canPurchase) {
+            buttonText += ' (No space!)';
+        } else if (!upgrade.canAfford) {
+            buttonText += ' (Need more!)';
+        }
 
         this.add.text(x, y, buttonText, {
             fontFamily: 'Arial Black',
@@ -349,7 +399,11 @@ class Shop extends Phaser.Scene {
             this.registry.set('prestigeLevel', prestigeLevel + 1);
             this.registry.set('prestigeMultiplier', Math.pow(2, prestigeLevel + 1));
 
-            // Reset all progress except prestige
+            // Increase max duplicators (+1 per prestige)
+            const currentMaxDuplicators = this.registry.get('maxDuplicators');
+            this.registry.set('maxDuplicators', currentMaxDuplicators + 1);
+
+            // Reset all progress except prestige and maxDuplicators
             this.registry.set('totalSkulls', 200);
             this.registry.set('maxSkulls', 10);
             this.registry.set('upgradeLevel', 0);
@@ -358,16 +412,80 @@ class Shop extends Phaser.Scene {
             this.registry.set('bumperLevel', 0);
             this.registry.set('flipperLevel', 0);
             this.registry.set('triangleLevel', 0);
+            this.registry.set('boosterLevel', 0);
+            this.registry.set('shrinkerLevel', 0);
+            this.registry.set('duplicatorLevel', 0);
             this.registry.set('gameTime', 10);
             this.registry.set('baskets', []);
             this.registry.set('bumpers', []);
             this.registry.set('flippers', []);
             this.registry.set('triangles', []);
+            this.registry.set('boosters', []);
+            this.registry.set('shrinkers', []);
+            this.registry.set('duplicators', []);
             this.registry.set('highscore', 0);
             this.registry.set('autoStartUnlocked', false);
             this.registry.set('autoStartLevel', 0);
             this.registry.set('autoStartEnabled', false);
 
+            this.scene.restart();
+        }
+    }
+
+    buyBooster() {
+        const cost = GameUtils.calculateUpgradeCost(10, this.registry.get('boosterLevel'), 1.5);
+        const baskets = this.registry.get('baskets');
+        const bumpers = this.registry.get('bumpers');
+        const flippers = this.registry.get('flippers');
+        const triangles = this.registry.get('triangles');
+        const boosters = this.registry.get('boosters');
+        const newPosition = PositionManager.findBoosterPosition(boosters, baskets, bumpers, flippers, triangles);
+
+        if (this.registry.get('totalSkulls') >= cost && newPosition) {
+            this.registry.set('totalSkulls', this.registry.get('totalSkulls') - cost);
+            this.registry.set('boosterLevel', this.registry.get('boosterLevel') + 1);
+
+            newPosition.angle = 0;  // Default angle (pointing down)
+            boosters.push(newPosition);
+            this.registry.set('boosters', boosters);
+            this.scene.restart();
+        }
+    }
+
+    buyShrinker() {
+        const cost = GameUtils.calculateUpgradeCost(15, this.registry.get('shrinkerLevel'), 1.5);
+        const baskets = this.registry.get('baskets');
+        const bumpers = this.registry.get('bumpers');
+        const flippers = this.registry.get('flippers');
+        const triangles = this.registry.get('triangles');
+        const shrinkers = this.registry.get('shrinkers');
+        const newPosition = PositionManager.findShrinkerPosition(shrinkers, baskets, bumpers, flippers, triangles);
+
+        if (this.registry.get('totalSkulls') >= cost && newPosition) {
+            this.registry.set('totalSkulls', this.registry.get('totalSkulls') - cost);
+            this.registry.set('shrinkerLevel', this.registry.get('shrinkerLevel') + 1);
+
+            shrinkers.push(newPosition);
+            this.registry.set('shrinkers', shrinkers);
+            this.scene.restart();
+        }
+    }
+
+    buyDuplicator() {
+        const cost = GameUtils.calculateUpgradeCost(1000, this.registry.get('duplicatorLevel'), 1.5);
+        const baskets = this.registry.get('baskets');
+        const bumpers = this.registry.get('bumpers');
+        const flippers = this.registry.get('flippers');
+        const triangles = this.registry.get('triangles');
+        const duplicators = this.registry.get('duplicators');
+        const newPosition = PositionManager.findDuplicatorPosition(duplicators, baskets, bumpers, flippers, triangles);
+
+        if (this.registry.get('totalSkulls') >= cost && newPosition) {
+            this.registry.set('totalSkulls', this.registry.get('totalSkulls') - cost);
+            this.registry.set('duplicatorLevel', this.registry.get('duplicatorLevel') + 1);
+
+            duplicators.push(newPosition);
+            this.registry.set('duplicators', duplicators);
             this.scene.restart();
         }
     }
